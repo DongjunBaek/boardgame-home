@@ -54,3 +54,16 @@ export type ExcelReport = {
 }
 
 export type ExcelPreview = { base: string; report: ExcelReport }
+
+/** 스토어 바로가기 (data/stores.json, 서버 backend/app/stores.py) */
+export type Store = {
+  id: string
+  name: string
+  url: string
+  /** 묶음 이름. 예: "제작사 스토어". null이면 '기타' */
+  group: string | null
+  memo: string | null
+}
+
+/** 추가·수정 때 보내는 값. 보낸 칸만 바뀐다 */
+export type StoreInput = Partial<Omit<Store, 'id'>>

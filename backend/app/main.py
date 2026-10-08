@@ -12,7 +12,8 @@ from fastapi.staticfiles import StaticFiles
 from backend.app import excel
 from backend.app.config import FRONTEND_DIST, data_dir
 from backend.app.games import GameConflictError, GameIn, apply_patch, describe_error, new_game
-from backend.app.store import DataFileCorruptedError, collection_lock, load_collection, save_collection
+from backend.app.store import DataFileCorruptedError, collection_lock, load_collection, load_json, save_collection, save_json
+from backend.app.stores import STORES_FILE, StoreConflictError, StoreIn, apply_store_patch, new_store, seed_stores
 
 app = FastAPI(title="boardgame-home")
 
@@ -34,7 +35,8 @@ def invalid_input(_: Request, e: RequestValidationError) -> JSONResponse:
 
 
 @app.exception_handler(GameConflictError)
-def conflict(_: Request, e: GameConflictError) -> JSONResponse:
+@app.exception_handler(StoreConflictError)
+def conflict(_: Request, e: Exception) -> JSONResponse:
     return JSONResponse({"detail": str(e)}, status_code=409)
 
 
@@ -75,6 +77,58 @@ def delete_game(game_id: str) -> Response:
         if len(rest) == len(games):
             raise HTTPException(404, f"없는 게임입니다: {game_id}")
         save_collection(rest)
+    return Response(status_code=204)
+
+
+# ---------- 스토어 바로가기 ----------
+
+
+def _load_stores() -> list[dict]:
+    """처음에는 보유 게임의 판매 링크로 목록을 만들어 저장한다. 잠금 안에서 부른다."""
+    stores = load_json(STORES_FILE)
+    if stores is None:
+        stores = seed_stores(load_collection())
+        save_json(STORES_FILE, stores)
+    return stores
+
+
+@app.get("/api/stores")
+def list_stores() -> list[dict]:
+    with collection_lock():
+        return _load_stores()
+
+
+@app.post("/api/stores", status_code=201)
+def create_store(data: StoreIn) -> dict:
+    with collection_lock():
+        stores = _load_stores()
+        try:
+            store = new_store(stores, data)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        save_json(STORES_FILE, [*stores, store])
+    return store
+
+
+@app.patch("/api/stores/{store_id}")
+def update_store(store_id: str, patch: StoreIn) -> dict:
+    with collection_lock():
+        try:
+            stores = apply_store_patch(_load_stores(), store_id, patch)
+        except KeyError as e:
+            raise HTTPException(404, f"없는 스토어입니다: {store_id}") from e
+        save_json(STORES_FILE, stores)
+    return next(s for s in stores if s["id"] == store_id)
+
+
+@app.delete("/api/stores/{store_id}", status_code=204)
+def delete_store(store_id: str) -> Response:
+    with collection_lock():
+        stores = _load_stores()
+        rest = [s for s in stores if s["id"] != store_id]
+        if len(rest) == len(stores):
+            raise HTTPException(404, f"없는 스토어입니다: {store_id}")
+        save_json(STORES_FILE, rest)
     return Response(status_code=204)
 
 

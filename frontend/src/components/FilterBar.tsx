@@ -1,7 +1,13 @@
 import { EXCEL_BLANKS_URL } from '../lib/api'
 import { EMPTY_FILTERS, isFiltered, type Filters, type PlayedFilter, type PublisherOption } from '../lib/games'
 
-type Props = { filters: Filters; publishers: PublisherOption[]; onChange: (next: Filters) => void }
+type Props = {
+  filters: Filters
+  publishers: PublisherOption[]
+  /** 사이드바에서 고른 스토어 이름 (거르는 중일 때) */
+  storeName?: string
+  onChange: (next: Filters) => void
+}
 
 /** 빈칸이나 1 미만이면 null (조건 없음) */
 function toPositiveInt(text: string): number | null {
@@ -9,11 +15,19 @@ function toPositiveInt(text: string): number | null {
   return Number.isFinite(n) && n >= 1 ? n : null
 }
 
-export default function FilterBar({ filters, publishers, onChange }: Props) {
+export default function FilterBar({ filters, publishers, storeName, onChange }: Props) {
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) => onChange({ ...filters, [key]: value })
 
   return (
     <div className="filter-bar" role="search">
+      {filters.store && (
+        <span className="filter-chip">
+          스토어: {storeName ?? filters.store}
+          <button type="button" className="icon-btn" aria-label="스토어 거르기 풀기" onClick={() => set('store', '')}>
+            ✕
+          </button>
+        </span>
+      )}
       <input
         type="search"
         className="filter-q"

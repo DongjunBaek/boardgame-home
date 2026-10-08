@@ -1,5 +1,6 @@
 // 보유 목록 거르기·정렬·요약. 화면 상태와 무관한 순수 함수만 둔다.
 import { minPlayers, supportsPlayerCount } from './players'
+import { storeKey } from './stores'
 import { GENRES, type Game, type GameInput, type Genre } from './types'
 
 export type PlayedFilter = 'all' | 'played' | 'unplayed'
@@ -17,6 +18,8 @@ export type Filters = {
   genre: GenreTab
   /** 제작사 묶음 키 (publisherKey). ''이면 전체 */
   publisher: string
+  /** 스토어 열쇠 (storeKey). 판매 링크가 이 스토어인 게임만. ''이면 전체 */
+  store: string
   players: number | null
   maxTime: number | null
   played: PlayedFilter
@@ -27,6 +30,7 @@ export const EMPTY_FILTERS: Filters = {
   q: '',
   genre: '',
   publisher: '',
+  store: '',
   players: null,
   maxTime: null,
   played: 'all',
@@ -50,6 +54,7 @@ export function filterGames(games: readonly Game[], f: Filters): Game[] {
     if (q && !`${g.title}\n${g.publisher ?? ''}`.toLowerCase().includes(q)) return false
     if (f.genre === NO_GENRE ? g.genres.length > 0 : f.genre && !g.genres.includes(f.genre)) return false
     if (f.publisher && publisherKey(g.publisher) !== f.publisher) return false
+    if (f.store && storeKey(g.sale_link) !== f.store) return false
     // 인원·시간 조건이 있으면 그 정보가 빈 게임은 뺀다 (맞는지 알 수 없으므로)
     if (f.players !== null && !supportsPlayerCount(g.player_count, f.players)) return false
     if (f.maxTime !== null && (g.play_time_minutes === null || g.play_time_minutes > f.maxTime)) return false

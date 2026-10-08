@@ -22,6 +22,8 @@ FIELD_LABELS = {
     "publisher": "제작사", "sale_link": "판매 링크", "images": "이미지", "tags": "태그", "quantity": "개수",
     "played": "해봤음", "rating": "별점", "review": "후기", "notes": "메모", "date": "구입일", "paid": "낸 가격",
     "shop": "산 곳",
+    # 스토어 (stores.py)
+    "name": "이름", "url": "주소", "group": "묶음", "memo": "메모",
 }
 
 

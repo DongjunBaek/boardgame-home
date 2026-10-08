@@ -1,4 +1,4 @@
-"""보유 게임 목록 저장소 (data/collection.json).
+"""JSON 파일 저장소: 보유 게임 목록(data/collection.json)과 스토어 목록(data/stores.json).
 
 - 저장할 때마다 직전 파일을 data/backups/에 복사해 둔다. 최근 BACKUP_KEEP개와,
   최근 DAILY_KEEP일 동안 날마다 첫 백업을 남긴다 (표에서 여러 번 고쳐도 며칠 전 상태로 돌아갈 수 있게).
@@ -45,10 +45,20 @@ def backup_dir() -> Path:
 
 def load_collection() -> list[dict]:
     """파일이 없으면 빈 목록. JSON이 깨져 있으면 DataFileCorruptedError."""
-    path = collection_path()
+    return load_json(COLLECTION_FILE) or []
+
+
+def save_collection(games: list[dict]) -> Path | None:
+    """목록을 저장한다. 기존 파일이 있었으면 그 백업 경로를 돌려준다."""
+    return save_json(COLLECTION_FILE, games)
+
+
+def load_json(name: str) -> list[dict] | None:
+    """data/<name>을 읽는다. 파일이 없으면 None. JSON이 깨져 있거나 목록이 아니면 DataFileCorruptedError."""
+    path = data_dir() / name
     with _lock:
         if not path.exists():
-            return []
+            return None
         text = path.read_text(encoding="utf-8")
     try:
         data = json.loads(text)
@@ -59,13 +69,13 @@ def load_collection() -> list[dict]:
     return data
 
 
-def save_collection(games: list[dict]) -> Path | None:
-    """목록을 저장한다. 기존 파일이 있었으면 그 백업 경로를 돌려준다."""
-    path = collection_path()
+def save_json(name: str, data: list[dict]) -> Path | None:
+    """data/<name>에 저장한다. 기존 파일이 있었으면 백업하고 그 경로를 돌려준다."""
+    path = data_dir() / name
     with _lock:
         backup = _backup(path) if path.exists() else None
-        _write_json_atomic(path, games)
-        _prune_backups()
+        _write_json_atomic(path, data)
+        _prune_backups(path.stem)
     return backup
 
 
@@ -78,12 +88,11 @@ def _backup(path: Path) -> Path:
     return target
 
 
-def _prune_backups() -> None:
+def _prune_backups(stem: str = Path(COLLECTION_FILE).stem) -> None:
+    """파일(stem)마다 따로 정리한다. 이름이 <stem>-YYYYMMDD-HHMMSS-ffffff.json이라 이름순 = 시간순."""
     folder = backup_dir()
     if not folder.is_dir():
         return
-    # 이름이 collection-YYYYMMDD-HHMMSS-ffffff.json이라 이름순 = 시간순
-    stem = Path(COLLECTION_FILE).stem
     backups = sorted(folder.glob(f"{stem}-*.json"))
     keep = set(backups[-BACKUP_KEEP:])
     first_of_day: dict[str, Path] = {}

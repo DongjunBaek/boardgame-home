@@ -1,0 +1,20 @@
+{
+  "_설명": "스토어 열쇠 공통 테스트 사례. 서버(backend/tests/test_stores.py)와 화면(frontend/src/lib/stores.test.ts)이 같은 결과를 내는지 둘 다 이 파일로 검사한다.",
+  "cases": [
+    { "url": "https://smartstore.naver.com/udg/products/123", "key": "smartstore.naver.com/udg" },
+    { "url": "https://m.smartstore.naver.com/udg/products/123?NaPm=x", "key": "smartstore.naver.com/udg" },
+    { "url": "https://smartstore.naver.com/UDG", "key": "smartstore.naver.com/udg" },
+    { "url": "https://smartstore.naver.com/", "key": "smartstore.naver.com" },
+    { "url": "https://brand.naver.com/abc/products/1", "key": "brand.naver.com/abc" },
+    { "url": "https://www.koreaboardgames.com/boardgame/game.php?id=1", "key": "koreaboardgames.com" },
+    { "url": "http://boardm.co.kr/goods/view?no=1", "key": "boardm.co.kr" },
+    { "url": "https://www.boardm.co.kr/", "key": "boardm.co.kr" },
+    { "url": "https://m.yes24.com/Goods/Detail/1", "key": "yes24.com" },
+    { "url": "https://WWW.Yes24.com:443/Goods", "key": "yes24.com" },
+    { "url": "  https://tumblbug.com/abc  ", "key": "tumblbug.com" },
+    { "url": "tumblbug.com/abc", "key": null },
+    { "url": "ftp://tumblbug.com/abc", "key": null },
+    { "url": "", "key": null },
+    { "url": null, "key": null }
+  ]
+}

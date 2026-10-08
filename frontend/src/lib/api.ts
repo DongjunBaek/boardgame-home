@@ -1,5 +1,5 @@
 // 서버 API 호출. 개발 중에는 Vite가 /api를 FastAPI로 넘겨준다 (vite.config.ts).
-import type { ExcelPreview, ExcelReport, Game, GameInput } from './types'
+import type { ExcelPreview, ExcelReport, Game, GameInput, Store, StoreInput } from './types'
 
 export type Health = { status: string; data_dir: string }
 
@@ -39,6 +39,17 @@ export const updateGame = (id: string, patch: GameInput, fetchFn?: typeof fetch)
   request<Game>('PATCH', gamePath(id), patch, fetchFn)
 
 export const deleteGame = (id: string, fetchFn?: typeof fetch) => request<void>('DELETE', gamePath(id), undefined, fetchFn)
+
+export const fetchStores = (fetchFn?: typeof fetch) => getJson<Store[]>('/stores', fetchFn)
+
+const storePath = (id: string) => `/stores/${encodeURIComponent(id)}`
+
+export const createStore = (input: StoreInput, fetchFn?: typeof fetch) => request<Store>('POST', '/stores', input, fetchFn)
+
+export const updateStore = (id: string, patch: StoreInput, fetchFn?: typeof fetch) =>
+  request<Store>('PATCH', storePath(id), patch, fetchFn)
+
+export const deleteStore = (id: string, fetchFn?: typeof fetch) => request<void>('DELETE', storePath(id), undefined, fetchFn)
 
 export const EXCEL_DOWNLOAD_URL = '/api/excel'
 /** 인원·시간·정가 중 빈칸이 있는 게임만, 빈칸을 표시해서 */

@@ -4,14 +4,18 @@ import FilterBar from './components/FilterBar'
 import GenreTabs from './components/GenreTabs'
 import GameDialog from './components/GameDialog'
 import GameTable from './components/GameTable'
-import { EXCEL_DOWNLOAD_URL, fetchGames, updateGame } from './lib/api'
+import StoreDialog from './components/StoreDialog'
+import StoreSidebar from './components/StoreSidebar'
+import { deleteStore, EXCEL_DOWNLOAD_URL, fetchGames, fetchStores, updateGame } from './lib/api'
 import { applyGamePatch, currentValues, EMPTY_FILTERS, filterGames, genreTabs, publisherOptions, isFiltered, sortGames, summarize, type Sort, type SortKey } from './lib/games'
-import type { ExcelReport, Game, GameInput } from './lib/types'
+import { groupNames, groupStores, storeKey } from './lib/stores'
+import type { ExcelReport, Game, GameInput, Store } from './lib/types'
 
 type Load = { kind: 'loading' } | { kind: 'ok' } | { kind: 'error'; message: string }
 type Notice = { kind: 'ok' | 'error'; text: string }
 /** 열린 상세 창: 게임 하나, 새 게임('new'), 또는 닫힘(null) */
 type DialogTarget = Game | 'new' | null
+type StoreDialogTarget = Store | 'new' | null
 
 // 숫자 칸은 큰 값부터 보는 일이 많아서 처음 누르면 내림차순
 const DESC_FIRST: SortKey[] = ['quantity', 'played', 'rating']
@@ -24,6 +28,9 @@ export default function App() {
   const [dialog, setDialog] = useState<DialogTarget>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
   const [upload, setUpload] = useState<File | null>(null)
+  const [stores, setStores] = useState<Store[] | null>(null)
+  const [storesError, setStoresError] = useState<string | null>(null)
+  const [storeDialog, setStoreDialog] = useState<StoreDialogTarget>(null)
   const noticeTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
@@ -33,6 +40,10 @@ export default function App() {
         setLoad({ kind: 'ok' })
       })
       .catch((e: Error) => setLoad({ kind: 'error', message: e.message }))
+    // 스토어를 못 불러와도 게임 표는 그대로 쓴다
+    fetchStores()
+      .then(setStores)
+      .catch((e: Error) => setStoresError(e.message))
   }, [])
 
   const notify = useCallback((n: Notice) => {
@@ -61,6 +72,20 @@ export default function App() {
   const summary = useMemo(() => summarize(games), [games])
   const publishers = useMemo(() => publisherOptions(games), [games])
   const tabs = useMemo(() => genreTabs(games), [games])
+  const storeGroups = useMemo(() => (stores ? groupStores(stores, games) : null), [stores, games])
+  const activeStore = filters.store ? stores?.find((s) => storeKey(s.url) === filters.store) : undefined
+
+  async function removeStore(store: Store) {
+    try {
+      await deleteStore(store.id)
+    } catch (e) {
+      notify({ kind: 'error', text: `'${store.name}' 삭제 실패: ${(e as Error).message}` })
+      return
+    }
+    setStores((list) => list?.filter((s) => s.id !== store.id) ?? null)
+    if (storeKey(store.url) === filters.store) setFilters((f) => ({ ...f, store: '' }))
+    notify({ kind: 'ok', text: `스토어 '${store.name}' 삭제했습니다` })
+  }
 
   const onSort = (key: SortKey) =>
     setSort((s) =>
@@ -131,20 +156,50 @@ export default function App() {
         </div>
       )}
 
-      {load.kind === 'loading' && <p className="status">불러오는 중…</p>}
-      {load.kind === 'error' && <p className="status bad">목록을 불러오지 못했습니다 ({load.message})</p>}
-      {load.kind === 'ok' && (
-        <>
-          <GenreTabs tabs={tabs} value={filters.genre} onChange={(genre) => setFilters((f) => ({ ...f, genre }))} />
-          <FilterBar filters={filters} publishers={publishers} onChange={setFilters} />
-          <GameTable
-            games={shown}
-            sort={sort}
-            onSort={onSort}
-            onOpen={setDialog}
-            onEdit={(g, patch) => void editInline(g, patch)}
-          />
-        </>
+      <div className="layout">
+        <StoreSidebar
+          groups={storeGroups}
+          error={storesError}
+          active={filters.store}
+          onPick={(store) => setFilters((f) => ({ ...f, store }))}
+          onAdd={() => setStoreDialog('new')}
+          onEdit={setStoreDialog}
+          onDelete={removeStore}
+        />
+        <main className="main">
+          {load.kind === 'loading' && <p className="status">불러오는 중…</p>}
+          {load.kind === 'error' && <p className="status bad">목록을 불러오지 못했습니다 ({load.message})</p>}
+          {load.kind === 'ok' && (
+            <>
+              <GenreTabs tabs={tabs} value={filters.genre} onChange={(genre) => setFilters((f) => ({ ...f, genre }))} />
+              <FilterBar filters={filters} publishers={publishers} storeName={activeStore?.name} onChange={setFilters} />
+              <GameTable
+                games={shown}
+                sort={sort}
+                onSort={onSort}
+                onOpen={setDialog}
+                onEdit={(g, patch) => void editInline(g, patch)}
+              />
+            </>
+          )}
+        </main>
+      </div>
+
+      {storeDialog && stores && (
+        <StoreDialog
+          key={storeDialog === 'new' ? 'new' : storeDialog.id}
+          store={storeDialog === 'new' ? null : storeDialog}
+          groups={groupNames(stores)}
+          onClose={() => setStoreDialog(null)}
+          onSaved={(store, isNew) => {
+            const old = storeDialog === 'new' ? null : storeDialog
+            setStores((list) => (list ? (isNew ? [...list, store] : list.map((s) => (s.id === store.id ? store : s))) : list))
+            // 주소를 바꾸면 그 스토어로 거르던 것도 새 주소를 따라간다
+            if (old && storeKey(old.url) === filters.store) setFilters((f) => ({ ...f, store: storeKey(store.url) ?? '' }))
+            setStoreDialog(null)
+            notify({ kind: 'ok', text: `스토어 '${store.name}' ${isNew ? '추가' : '저장'}했습니다` })
+          }}
+        />
       )}
 
       {upload && <ExcelImportDialog file={upload} onClose={closeUpload} onApplied={(r) => void afterExcel(r)} />}
