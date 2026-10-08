@@ -93,12 +93,47 @@ body {
   color: var(--accent);
 }
 
+.genre-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 16px 0 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.genre-tab {
+  padding: 8px 16px;
+  font: inherit;
+  font-weight: 500;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+
+.genre-tab:hover {
+  color: var(--text);
+}
+
+.genre-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tab-count {
+  margin-left: 2px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
-  margin: 16px 0 12px;
+  margin: 12px 0;
   padding: 10px 12px;
   background: var(--surface);
   border: 1px solid var(--border);

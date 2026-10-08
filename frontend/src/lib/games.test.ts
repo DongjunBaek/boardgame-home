@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyGamePatch, applyMinePatch, currentValues, EMPTY_FILTERS, filterGames, NO_PUBLISHER, publisherKey, publisherOptions, hasBlanks, isFiltered, sortGames, summarize, type Filters } from './games'
+import { applyGamePatch, applyMinePatch, currentValues, EMPTY_FILTERS, filterGames, genreTabs, NO_GENRE, NO_PUBLISHER, publisherKey, publisherOptions, hasBlanks, isFiltered, sortGames, summarize, type Filters } from './games'
 import type { Game } from './types'
 
 function game(id: string, over: Partial<Omit<Game, 'mine'>> & { mine?: Partial<Game['mine']> } = {}): Game {
@@ -183,5 +183,20 @@ describe('제작사', () => {
   })
   it('제작사순 정렬, 제작사 없음은 맨 뒤', () => {
     expect(ids(sortGames(list, { key: 'publisher', dir: 'asc' })).slice(-2)).toEqual(['f', 'g'])
+  })
+})
+
+describe('장르 탭', () => {
+  it('전체·장르별 개수, 둘 다인 게임은 양쪽에', () => {
+    expect(genreTabs(GAMES).map((t) => [t.label, t.count])).toEqual([
+      ['전체', 4],
+      ['보드게임', 3],
+      ['머더미스터리', 2],
+    ])
+  })
+  it('장르 없는 게임이 있으면 미분류 탭', () => {
+    const list = [...GAMES, game('없음', { genres: [] })]
+    expect(genreTabs(list).at(-1)).toEqual({ key: NO_GENRE, label: '미분류', count: 1 })
+    expect(ids(filterGames(list, { ...EMPTY_FILTERS, genre: NO_GENRE }))).toEqual(['없음'])
   })
 })

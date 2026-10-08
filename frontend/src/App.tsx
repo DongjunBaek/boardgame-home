@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ExcelImportDialog from './components/ExcelImportDialog'
 import FilterBar from './components/FilterBar'
+import GenreTabs from './components/GenreTabs'
 import GameDialog from './components/GameDialog'
 import GameTable from './components/GameTable'
 import { EXCEL_DOWNLOAD_URL, fetchGames, updateGame } from './lib/api'
-import { applyGamePatch, currentValues, EMPTY_FILTERS, filterGames, publisherOptions, isFiltered, sortGames, summarize, type Sort, type SortKey } from './lib/games'
+import { applyGamePatch, currentValues, EMPTY_FILTERS, filterGames, genreTabs, publisherOptions, isFiltered, sortGames, summarize, type Sort, type SortKey } from './lib/games'
 import type { ExcelReport, Game, GameInput } from './lib/types'
 
 type Load = { kind: 'loading' } | { kind: 'ok' } | { kind: 'error'; message: string }
@@ -59,6 +60,7 @@ export default function App() {
   const shown = useMemo(() => sortGames(filterGames(games, filters), sort), [games, filters, sort])
   const summary = useMemo(() => summarize(games), [games])
   const publishers = useMemo(() => publisherOptions(games), [games])
+  const tabs = useMemo(() => genreTabs(games), [games])
 
   const onSort = (key: SortKey) =>
     setSort((s) =>
@@ -86,8 +88,7 @@ export default function App() {
           <h1>내 보드게임</h1>
           {load.kind === 'ok' && (
             <p className="summary">
-              총 <b>{summary.total}</b>개 · 머더미스터리 {summary.murder} · 보드게임 {summary.board} · 안 해봄{' '}
-              {summary.unplayed}
+              총 <b>{summary.total}</b>개 · 안 해봄 {summary.unplayed}
               {isFiltered(filters) && (
                 <span className="summary-filtered">
                   {' '}
@@ -134,6 +135,7 @@ export default function App() {
       {load.kind === 'error' && <p className="status bad">목록을 불러오지 못했습니다 ({load.message})</p>}
       {load.kind === 'ok' && (
         <>
+          <GenreTabs tabs={tabs} value={filters.genre} onChange={(genre) => setFilters((f) => ({ ...f, genre }))} />
           <FilterBar filters={filters} publishers={publishers} onChange={setFilters} />
           <GameTable
             games={shown}

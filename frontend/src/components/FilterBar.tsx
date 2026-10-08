@@ -1,6 +1,5 @@
 import { EXCEL_BLANKS_URL } from '../lib/api'
 import { EMPTY_FILTERS, isFiltered, type Filters, type PlayedFilter, type PublisherOption } from '../lib/games'
-import { GENRES, type Genre } from '../lib/types'
 
 type Props = { filters: Filters; publishers: PublisherOption[]; onChange: (next: Filters) => void }
 
@@ -23,14 +22,6 @@ export default function FilterBar({ filters, publishers, onChange }: Props) {
         value={filters.q}
         onChange={(e) => set('q', e.target.value)}
       />
-      <select aria-label="장르" value={filters.genre} onChange={(e) => set('genre', e.target.value as Genre | '')}>
-        <option value="">장르 전체</option>
-        {GENRES.map((g) => (
-          <option key={g} value={g}>
-            {g}
-          </option>
-        ))}
-      </select>
       <select
         className="filter-publisher"
         aria-label="제작사"
@@ -83,7 +74,12 @@ export default function FilterBar({ filters, publishers, onChange }: Props) {
           빈칸 채우기용 엑셀 받기
         </a>
       )}
-      <button type="button" onClick={() => onChange(EMPTY_FILTERS)} disabled={!isFiltered(filters)}>
+      {/* 초기화는 거르기 칸만 비운다 (장르 탭은 그대로) */}
+      <button
+        type="button"
+        onClick={() => onChange({ ...EMPTY_FILTERS, genre: filters.genre })}
+        disabled={!isFiltered({ ...filters, genre: '' })}
+      >
         초기화
       </button>
     </div>
