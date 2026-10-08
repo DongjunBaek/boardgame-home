@@ -1,0 +1,59 @@
+:root {
+  --text: #1f1d24;
+  --muted: #6b6375;
+  --bg: #ffffff;
+  --surface: #f6f5f8;
+  --border: #e3e1e8;
+  --ok: #1f7a4d;
+  --bad: #b3261e;
+
+  font: 15px/1.5 system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #ece9f1;
+    --muted: #a39cae;
+    --bg: #17151b;
+    --surface: #211e26;
+    --border: #35313c;
+    --ok: #5cc98f;
+    --bad: #ff8a80;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.app-header h1 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+.status {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.status.ok {
+  color: var(--ok);
+}
+
+.status.bad {
+  color: var(--bad);
+}
