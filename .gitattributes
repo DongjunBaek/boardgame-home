@@ -1,0 +1,2 @@
+# start.bat은 Windows 줄바꿈(CRLF)이어야 cmd가 제대로 읽는다
+*.bat text eol=crlf

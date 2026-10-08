@@ -1,3 +1,4 @@
+import { EXCEL_BLANKS_URL } from '../lib/api'
 import { EMPTY_FILTERS, isFiltered, type Filters, type PlayedFilter } from '../lib/games'
 import { GENRES, type Genre } from '../lib/types'
 
@@ -57,9 +58,14 @@ export default function FilterBar({ filters, onChange }: Props) {
         <option value="played">해본 게임</option>
       </select>
       <label className="filter-check">
-        <input type="checkbox" checked={filters.blanksOnly} onChange={(e) => set('blanksOnly', e.target.checked)} />
+        <input type="checkbox" aria-label="빈칸 있는 것만" checked={filters.blanksOnly} onChange={(e) => set('blanksOnly', e.target.checked)} />
         빈칸 있는 것만
       </label>
+      {filters.blanksOnly && (
+        <a className="filter-link" href={EXCEL_BLANKS_URL} download>
+          빈칸 채우기용 엑셀 받기
+        </a>
+      )}
       <button type="button" onClick={() => onChange(EMPTY_FILTERS)} disabled={!isFiltered(filters)}>
         초기화
       </button>

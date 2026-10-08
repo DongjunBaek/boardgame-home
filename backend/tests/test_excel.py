@@ -292,3 +292,29 @@ def test_date_cells_and_text_numbers():
             excel._parse_cell(excel.BY_HEADER["구입일"], text)
     assert excel._parse_cell(excel.BY_HEADER["제목"], 1830.0) == "1830"
     assert excel._parse_cell(excel.BY_HEADER["정가(원)"], 59000.0) == 59000
+
+
+def test_download_only_blanks(saved):
+    res = client.get("/api/excel", params={"only": "blanks"})
+    assert res.status_code == 200
+    ws = load_workbook(io.BytesIO(res.content))[excel.SHEET]
+    header = [c.value for c in ws[1]]
+    rows = list(ws.iter_rows(min_row=2))
+    assert [r[header.index("제목")].value for r in rows] == ["망령 열차"]  # 정가·시간이 빈 게임만
+    fills = {header[i]: c.fill.start_color.rgb for i, c in enumerate(rows[0])}
+    assert fills["정가(원)"].endswith("F8CBAD") and fills["시간(분)"].endswith("F8CBAD")
+    assert not fills["인원"].endswith("F8CBAD")  # 인원은 있음
+    assert "빈칸_" in res.headers["content-disposition"] or "%EB%B9%88%EC%B9%B8_" in res.headers["content-disposition"]
+
+
+def test_blanks_file_upload_keeps_other_games(saved):
+    data = edit(client.get("/api/excel", params={"only": "blanks"}).content, {("망령 열차", "시간(분)"): 120})
+    result = preview(data)
+    assert result["report"]["counts"] == {"new": 0, "updated": 1, "unchanged": 0, "not_in_file": 2}
+    assert apply(data, result["base"]).status_code == 200
+    assert by_id("naver:1")["play_time_minutes"] == 120
+    assert len(store.load_collection()) == 3
+
+
+def test_download_rejects_unknown_option(saved):
+    assert client.get("/api/excel", params={"only": "x"}).status_code == 422

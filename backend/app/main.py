@@ -106,11 +106,14 @@ def _plan_upload(data: bytes, games: list[dict]) -> tuple[list[dict], dict]:
 
 
 @app.get("/api/excel")
-def download_excel() -> Response:
+def download_excel(only: str | None = None) -> Response:
+    """only=blanks면 빈칸(인원·시간·정가)이 있는 게임만"""
+    if only not in (None, "blanks"):
+        raise HTTPException(422, "only는 blanks만 쓸 수 있습니다")
     today = date.today()
-    name = f"내보드게임_{today:%Y%m%d}.xlsx"
+    name = f"내보드게임_{'빈칸_' if only else ''}{today:%Y%m%d}.xlsx"
     return Response(
-        excel.build_workbook(load_collection(), today),
+        excel.build_workbook(load_collection(), today, only_blanks=only == "blanks"),
         media_type=XLSX,
         # 한글 파일 이름은 filename*로, 옛 브라우저용 filename은 영어로
         headers={"Content-Disposition": f"attachment; filename=\"boardgame_{today:%Y%m%d}.xlsx\"; filename*=UTF-8''{quote(name)}"},

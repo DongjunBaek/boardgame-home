@@ -71,7 +71,14 @@ FILLS = {
     "id": PatternFill("solid", start_color="E7E6E6"),
     "game": PatternFill("solid", start_color="FFF2CC"),
     "mine": PatternFill("solid", start_color="E2EFDA"),
+    "blank": PatternFill("solid", start_color="F8CBAD"),  # 채울 빈칸 (빈칸만 내려받기)
 }
+# 빈칸만 내려받기에서 채우라고 표시하는 칸
+BLANK_TARGETS = ("인원", "시간(분)", "정가(원)")
+
+
+def has_blanks(game: dict) -> bool:
+    return not game["player_count"] or game["play_time_minutes"] is None or game["price"] is None
 THIN = Side(style="thin", color="BFBFBF")
 BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
@@ -92,7 +99,8 @@ def _cell_value(col: Col, value):
     return value if value not in ("", []) else None
 
 
-def build_workbook(games: list[dict], today: date | None = None) -> bytes:
+def build_workbook(games: list[dict], today: date | None = None, only_blanks: bool = False) -> bytes:
+    """only_blanks면 인원·시간·정가 중 빈칸이 있는 게임만, 빈칸을 주황색으로 표시해서 내보낸다."""
     wb = Workbook()
     ws = wb.active
     ws.title = SHEET
@@ -104,12 +112,13 @@ def build_workbook(games: list[dict], today: date | None = None) -> bytes:
         cell.border = BORDER
         ws.column_dimensions[get_column_letter(i)].width = col.width
 
-    rows = sorted(games, key=lambda g: g["title"])
+    rows = sorted((g for g in games if not only_blanks or has_blanks(g)), key=lambda g: g["title"])
     for r, game in enumerate(rows, start=2):
         for i, col in enumerate(COLUMNS, start=1):
-            cell = ws.cell(row=r, column=i, value=_cell_value(col, _get(game, col.path)))
+            value = _cell_value(col, _get(game, col.path))
+            cell = ws.cell(row=r, column=i, value=value)
             cell.font = Font(name=FONT, color="7F7F7F" if col.section == "id" else "000000")
-            cell.fill = FILLS[col.section]
+            cell.fill = FILLS["blank" if only_blanks and value is None and col.header in BLANK_TARGETS else col.section]
             cell.border = BORDER
             cell.alignment = Alignment(vertical="top", wrap_text=col.header in ("제목", "후기", "메모"))
             if col.kind == "int" and col.header.endswith("(원)"):
@@ -131,7 +140,7 @@ def build_workbook(games: list[dict], today: date | None = None) -> bytes:
         if col.header in notes:
             ws.cell(row=1, column=i).comment = Comment(notes[col.header], "boardgame-home")
 
-    _add_guide(wb, len(rows), today or date.today())
+    _add_guide(wb, len(rows), today or date.today(), only_blanks)
     out = io.BytesIO()
     wb.save(out)
     return out.getvalue()
@@ -157,12 +166,20 @@ def _add_checks(ws, until: int) -> None:
     add("해봤음", 'OR(@="O",@="X")', "해봤음은 O 또는 X로 적어 주세요.")
 
 
-def _add_guide(wb: Workbook, count: int, today: date) -> None:
+def _add_guide(wb: Workbook, count: int, today: date, only_blanks: bool = False) -> None:
     ws = wb.create_sheet(GUIDE_SHEET)
+    blanks = [
+        ("빈칸 채우기용 파일", True),
+        ("인원·시간·정가 중 빈칸이 있는 게임만 담았습니다. 채울 빈칸은 주황색입니다.", False),
+        ("게임 상자나 공식 판매처에서 확인한 값만 적고, 모르면 빈칸으로 두세요. 정가는 할인 전 가격입니다.", False),
+        ("이 파일에 없는 게임은 올려도 그대로입니다.", False),
+        ("", False),
+    ] if only_blanks else []
     lines = [
         ("보유 게임 엑셀 편집 안내", True),
         (f"내려받은 날: {today.isoformat()}  ·  게임 {count}개", False),
         ("", False),
+        *blanks,
         ("쓰는 법", True),
         ("이 파일을 고친 뒤 사이트의 [엑셀 올리기]로 올리면, 바뀔 내용을 먼저 보여 주고 [적용]을 눌러야 저장됩니다.", False),
         ("저장하기 전 상태는 자동으로 백업됩니다.", False),

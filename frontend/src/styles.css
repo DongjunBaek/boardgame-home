@@ -138,6 +138,11 @@ body {
   white-space: nowrap;
 }
 
+.filter-link {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
 .filter-num input {
   width: 64px;
 }

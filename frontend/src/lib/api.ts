@@ -41,6 +41,8 @@ export const updateGame = (id: string, patch: GameInput, fetchFn?: typeof fetch)
 export const deleteGame = (id: string, fetchFn?: typeof fetch) => request<void>('DELETE', gamePath(id), undefined, fetchFn)
 
 export const EXCEL_DOWNLOAD_URL = '/api/excel'
+/** 인원·시간·정가 중 빈칸이 있는 게임만, 빈칸을 표시해서 */
+export const EXCEL_BLANKS_URL = '/api/excel?only=blanks'
 
 export const previewExcel = (file: Blob, fetchFn?: typeof fetch) =>
   request<ExcelPreview>('POST', '/excel/preview', file, fetchFn)
