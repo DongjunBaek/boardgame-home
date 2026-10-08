@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyMinePatch, EMPTY_FILTERS, filterGames, hasBlanks, isFiltered, sortGames, summarize, type Filters } from './games'
+import { applyGamePatch, applyMinePatch, currentValues, EMPTY_FILTERS, filterGames, hasBlanks, isFiltered, sortGames, summarize, type Filters } from './games'
 import type { Game } from './types'
 
 function game(id: string, over: Partial<Omit<Game, 'mine'>> & { mine?: Partial<Game['mine']> } = {}): Game {
@@ -129,5 +129,24 @@ describe('낸 가격', () => {
   })
   it('다른 내 정보는 한 단계만 합친다', () => {
     expect(applyMinePatch(bought[1], { rating: 3 }).mine).toMatchObject({ rating: 3, quantity: 1 })
+  })
+})
+
+describe('게임 정보 바로 고치기', () => {
+  const g = game('a', { price: 30000, mine: { rating: 4, purchase: { date: '2026-01-01', paid: 1000, shop: '보드엠' } } })
+  it('게임 정보와 내 정보를 함께 반영', () => {
+    const next = applyGamePatch(g, { price: null, player_count: ['5인'], mine: { purchase: { paid: 2000 } } })
+    expect(next.price).toBeNull()
+    expect(next.player_count).toEqual(['5인'])
+    expect(next.mine.purchase).toEqual({ date: '2026-01-01', paid: 2000, shop: '보드엠' })
+    expect(next.mine.rating).toBe(4)
+  })
+  it('되돌리기용 지금 값은 바꾸는 칸만', () => {
+    expect(currentValues(g, { price: null, mine: { purchase: { paid: 2000 } } })).toEqual({
+      price: 30000,
+      mine: { purchase: { paid: 1000 } },
+    })
+    const changed = applyGamePatch(g, { play_time_minutes: 90 })
+    expect(applyGamePatch(changed, currentValues(g, { play_time_minutes: 90 }))).toEqual(g)
   })
 })

@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
-import { formatMinutes, formatPlayers, formatPrice, shortGenre } from '../lib/format'
+import { formatMinutes, formatPlayers, formatPrice, parseMinutes, parsePlayerInput, parseWon, shortGenre } from '../lib/format'
 import type { Sort, SortKey } from '../lib/games'
 import type { Game, GameInput } from '../lib/types'
-import PaidCell from './PaidCell'
+import EditableCell from './EditableCell'
 import StarRating from './StarRating'
 
 type Props = {
@@ -10,8 +10,8 @@ type Props = {
   sort: Sort
   onSort: (key: SortKey) => void
   onOpen: (game: Game) => void
-  /** 표에서 바로 고치기 (개수·해봤음·별점·낸 가격) */
-  onEdit: (game: Game, mine: NonNullable<GameInput['mine']>) => void
+  /** 표에서 바로 고치기 (인원·시간·정가·낸 가격·개수·해봤음·별점) */
+  onEdit: (game: Game, patch: GameInput) => void
 }
 
 const COLUMNS: { key: SortKey; label: string; className?: string }[] = [
@@ -70,14 +70,49 @@ export default function GameTable({ games, sort, onSort, onOpen, onEdit }: Props
                     ))
                   : cell(null)}
               </td>
-              <td>{cell(formatPlayers(g.player_count))}</td>
-              <td className="num">{cell(formatMinutes(g.play_time_minutes))}</td>
-              <td className="num">{cell(formatPrice(g.price))}</td>
+              <td>
+                <EditableCell
+                  label={`${g.title} 인원`}
+                  display={formatPlayers(g.player_count)}
+                  initialText={g.player_count.join(', ')}
+                  parse={parsePlayerInput}
+                  hint="예: 4인 / 2-4인 / 5+gm, 여러 개면 쉼표로"
+                  placeholder="2-4인"
+                  onSave={(player_count) => onEdit(g, { player_count })}
+                />
+              </td>
               <td className="num">
-                <PaidCell
-                  title={g.title}
-                  value={g.mine.purchase.paid}
-                  onSave={(paid) => onEdit(g, { purchase: { paid } })}
+                <EditableCell
+                  label={`${g.title} 시간`}
+                  display={formatMinutes(g.play_time_minutes)}
+                  initialText={g.play_time_minutes === null ? '' : String(g.play_time_minutes)}
+                  parse={parseMinutes}
+                  hint="1 이상의 숫자(분)로 적어 주세요"
+                  placeholder="분"
+                  width={70}
+                  onSave={(play_time_minutes) => onEdit(g, { play_time_minutes })}
+                />
+              </td>
+              <td className="num">
+                <EditableCell
+                  label={`${g.title} 정가`}
+                  display={formatPrice(g.price)}
+                  initialText={g.price === null ? '' : String(g.price)}
+                  parse={parseWon}
+                  hint="0 이상의 숫자(원)로 적어 주세요"
+                  placeholder="원"
+                  onSave={(price) => onEdit(g, { price })}
+                />
+              </td>
+              <td className="num">
+                <EditableCell
+                  label={`${g.title} 낸 가격`}
+                  display={formatPrice(g.mine.purchase.paid)}
+                  initialText={g.mine.purchase.paid === null ? '' : String(g.mine.purchase.paid)}
+                  parse={parseWon}
+                  hint="0 이상의 숫자(원)로 적어 주세요"
+                  placeholder="원"
+                  onSave={(paid) => onEdit(g, { mine: { purchase: { paid } } })}
                 />
               </td>
               <td className="num">
@@ -86,7 +121,7 @@ export default function GameTable({ games, sort, onSort, onOpen, onEdit }: Props
                     type="button"
                     aria-label={`${g.title} 개수 줄이기`}
                     disabled={g.mine.quantity <= 1}
-                    onClick={() => onEdit(g, { quantity: g.mine.quantity - 1 })}
+                    onClick={() => onEdit(g, { mine: { quantity: g.mine.quantity - 1 } })}
                   >
                     −
                   </button>
@@ -94,7 +129,7 @@ export default function GameTable({ games, sort, onSort, onOpen, onEdit }: Props
                   <button
                     type="button"
                     aria-label={`${g.title} 개수 늘리기`}
-                    onClick={() => onEdit(g, { quantity: g.mine.quantity + 1 })}
+                    onClick={() => onEdit(g, { mine: { quantity: g.mine.quantity + 1 } })}
                   >
                     +
                   </button>
@@ -106,11 +141,11 @@ export default function GameTable({ games, sort, onSort, onOpen, onEdit }: Props
                   className="played-check"
                   aria-label={`${g.title} 해봤음`}
                   checked={g.mine.played}
-                  onChange={(e) => onEdit(g, { played: e.target.checked })}
+                  onChange={(e) => onEdit(g, { mine: { played: e.target.checked } })}
                 />
               </td>
               <td>
-                <StarRating value={g.mine.rating} onChange={(rating) => onEdit(g, { rating })} />
+                <StarRating value={g.mine.rating} onChange={(rating) => onEdit(g, { mine: { rating } })} />
               </td>
             </tr>
           ))}

@@ -4,7 +4,7 @@ import FilterBar from './components/FilterBar'
 import GameDialog from './components/GameDialog'
 import GameTable from './components/GameTable'
 import { EXCEL_DOWNLOAD_URL, fetchGames, updateGame } from './lib/api'
-import { applyMinePatch, EMPTY_FILTERS, filterGames, isFiltered, sortGames, summarize, type Sort, type SortKey } from './lib/games'
+import { applyGamePatch, currentValues, EMPTY_FILTERS, filterGames, isFiltered, sortGames, summarize, type Sort, type SortKey } from './lib/games'
 import type { ExcelReport, Game, GameInput } from './lib/types'
 
 type Load = { kind: 'loading' } | { kind: 'ok' } | { kind: 'error'; message: string }
@@ -43,16 +43,15 @@ export default function App() {
 
   const replace = (game: Game) => setGames((list) => list.map((g) => (g.id === game.id ? game : g)))
 
-  /** 표에서 바로 고치기: 먼저 화면에 반영하고, 저장에 실패하면 되돌린다 */
-  async function editInline(game: Game, mine: NonNullable<GameInput['mine']>) {
-    replace(applyMinePatch(game, mine))
+  /** 표에서 바로 고치기: 먼저 화면에 반영하고, 저장에 실패하면 바꾼 칸만 되돌린다 */
+  async function editInline(game: Game, patch: GameInput) {
+    const before = currentValues(game, patch)
+    replace(applyGamePatch(game, patch))
     try {
-      replace(await updateGame(game.id, { mine }))
+      replace(await updateGame(game.id, patch))
     } catch (e) {
       // 그 사이 다른 칸을 또 고쳤을 수 있으니, 이번에 바꾼 칸만 되돌린다
-      setGames((list) =>
-        list.map((g) => (g.id === game.id ? { ...g, mine: { ...g.mine, ...pick(game.mine, Object.keys(mine)) } } : g)),
-      )
+      setGames((list) => list.map((g) => (g.id === game.id ? applyGamePatch(g, before) : g)))
       notify({ kind: 'error', text: `'${game.title}' 저장 실패, 되돌렸습니다: ${(e as Error).message}` })
     }
   }
@@ -140,7 +139,7 @@ export default function App() {
             sort={sort}
             onSort={onSort}
             onOpen={setDialog}
-            onEdit={(g, mine) => void editInline(g, mine)}
+            onEdit={(g, patch) => void editInline(g, patch)}
           />
         </>
       )}
@@ -170,8 +169,4 @@ export default function App() {
       )}
     </div>
   )
-}
-
-function pick<T extends object>(obj: T, keys: string[]): Partial<T> {
-  return Object.fromEntries(Object.entries(obj).filter(([k]) => keys.includes(k))) as Partial<T>
 }

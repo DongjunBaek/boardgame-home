@@ -116,3 +116,28 @@ export function applyMinePatch(game: Game, mine: NonNullable<GameInput['mine']>)
     mine: { ...game.mine, ...rest, purchase: { ...game.mine.purchase, ...purchase } },
   }
 }
+
+/** 수정 값(게임 정보 + 내 정보)을 반영한 새 게임. 서버의 합치기와 같다. */
+export function applyGamePatch(game: Game, patch: GameInput): Game {
+  const { mine, ...rest } = patch
+  const next: Game = { ...game, ...rest }
+  return mine ? applyMinePatch(next, mine) : next
+}
+
+/** patch가 바꾸는 칸들의 지금 값 (저장에 실패했을 때 그 칸만 되돌리는 데 쓴다) */
+export function currentValues(game: Game, patch: GameInput): GameInput {
+  const { mine, ...rest } = patch
+  const out: GameInput = Object.fromEntries(
+    Object.keys(rest).map((k) => [k, game[k as keyof typeof rest]]),
+  ) as GameInput
+  if (mine) {
+    const { purchase, ...mineRest } = mine
+    out.mine = Object.fromEntries(Object.keys(mineRest).map((k) => [k, game.mine[k as keyof typeof mineRest]]))
+    if (purchase) {
+      out.mine.purchase = Object.fromEntries(
+        Object.keys(purchase).map((k) => [k, game.mine.purchase[k as keyof typeof purchase]]),
+      )
+    }
+  }
+  return out
+}

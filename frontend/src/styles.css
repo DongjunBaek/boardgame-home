@@ -372,12 +372,12 @@ button:disabled {
   text-align: center;
 }
 
-.paid-btn {
-  min-width: 72px;
+.cell-btn {
+  min-width: 48px;
   padding: 2px 4px;
   font: inherit;
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  text-align: inherit;
   color: var(--text);
   background: none;
   border: 1px dashed transparent;
@@ -385,22 +385,21 @@ button:disabled {
   cursor: text;
 }
 
-.game-table tr:hover .paid-btn {
+.game-table tr:hover .cell-btn {
   border-color: var(--border);
 }
 
-.paid-input {
-  width: 90px;
+.cell-input {
   padding: 2px 4px;
   font: inherit;
-  text-align: right;
+  text-align: inherit;
   color: var(--text);
   background: var(--bg);
   border: 1px solid var(--accent);
   border-radius: 4px;
 }
 
-.paid-input.invalid {
+.cell-input.invalid {
   border-color: var(--bad);
   background: var(--bad-bg);
 }
