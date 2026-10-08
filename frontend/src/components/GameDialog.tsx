@@ -193,7 +193,7 @@ export default function GameDialog({ game, onClose, onSaved, onDeleted }: Props)
                 <input type="date" value={form.purchaseDate} onChange={(e) => set('purchaseDate', e.target.value)} />,
               )}
               {field(
-                '낸 가격(원)',
+                '구매가격(원)',
                 <input inputMode="numeric" value={form.purchasePaid} onChange={(e) => set('purchasePaid', e.target.value)} />,
               )}
               {field('산 곳', <input value={form.purchaseShop} onChange={(e) => set('purchaseShop', e.target.value)} />, true)}

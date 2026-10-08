@@ -53,10 +53,12 @@ COLUMNS = [
     Col("후기", ("mine", "review"), "text", 30, "mine"),
     Col("메모", ("mine", "notes"), "text", 24, "mine"),
     Col("구입일", ("mine", "purchase", "date"), "date", 12, "mine"),
-    Col("낸 가격(원)", ("mine", "purchase", "paid"), "int", 11, "mine"),
+    Col("구매가격(원)", ("mine", "purchase", "paid"), "int", 11, "mine"),
     Col("산 곳", ("mine", "purchase", "shop"), "text", 14, "mine"),
 ]
 BY_HEADER = {c.header: c for c in COLUMNS}
+# 예전에 내려받은 엑셀의 열 이름도 받는다 (옛 이름 → 지금 이름)
+OLD_HEADERS = {"낸 가격(원)": "구매가격(원)"}
 
 
 class ExcelReadError(Exception):
@@ -160,7 +162,7 @@ def _add_checks(ws, until: int) -> None:
     number = 'OR(@="-",AND(ISNUMBER(@),@=INT(@),@>={low}))'
     add("시간(분)", number.format(low=1), "시간은 1 이상의 숫자(분)로 적거나, 지우려면 - 를 적어 주세요.")
     add("정가(원)", number.format(low=0), "정가는 0 이상의 숫자(원)로 적거나, 지우려면 - 를 적어 주세요.")
-    add("낸 가격(원)", number.format(low=0), "낸 가격은 0 이상의 숫자(원)로 적거나, 지우려면 - 를 적어 주세요.")
+    add("구매가격(원)", number.format(low=0), "구매가격은 0 이상의 숫자(원)로 적거나, 지우려면 - 를 적어 주세요.")
     add("개수", "AND(ISNUMBER(@),@=INT(@),@>=1)", "개수는 1 이상의 숫자로 적어 주세요.")
     add("별점", 'OR(@="-",AND(ISNUMBER(@),@=INT(@),@>=1,@<=5))', "별점은 1~5로 적거나, 지우려면 - 를 적어 주세요.")
     add("해봤음", 'OR(@="O",@="X")', "해봤음은 O 또는 X로 적어 주세요.")
@@ -196,7 +198,7 @@ def _add_guide(wb: Workbook, count: int, today: date, only_blanks: bool = False)
         ("적는 형식", True),
         (f"장르: {', '.join(GENRES)} (쉼표로 구분, 둘 다 가능)", False),
         ("인원: 4인 / 2-4인 / 5+gm (게임마스터 필요). 여러 개면 쉼표로", False),
-        ("시간: 분 단위 숫자 · 정가·낸 가격: 원 단위 숫자 (정가는 할인 전 가격) · 별점: 1~5", False),
+        ("시간: 분 단위 숫자 · 정가·구매가격: 원 단위 숫자 (정가는 할인 전 가격) · 별점: 1~5", False),
         ("해봤음: O 또는 X · 구입일: 2026-10-01 형식", False),
         ("", False),
         ("행 추가·삭제", True),
@@ -231,6 +233,7 @@ def read_workbook(data: bytes) -> list[Row]:
         raise ExcelReadError(f"'{SHEET}' 시트가 없습니다. 사이트에서 내려받은 파일을 고쳐서 올려 주세요.")
     values = wb[SHEET].iter_rows(values_only=True)
     header = [str(v).strip() if v is not None else "" for v in next(values, ())]
+    header = [OLD_HEADERS.get(h, h) for h in header]
     missing = [c.header for c in COLUMNS if c.header not in header]
     if missing:
         raise ExcelReadError(f"열이 없습니다: {', '.join(missing)}. 열 이름을 바꾸지 말아 주세요.")

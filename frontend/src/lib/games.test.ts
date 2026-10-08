@@ -112,17 +112,17 @@ describe('summarize', () => {
   })
 })
 
-describe('낸 가격', () => {
+describe('구매가격', () => {
   const bought = [
     game('a', { mine: { purchase: { date: '2026-01-01', paid: 30000, shop: '보드엠' } } }),
     game('b'),
     game('c', { mine: { purchase: { date: null, paid: 12000, shop: null } } }),
   ]
-  it('낸 가격 정렬, 기록 없는 게임은 맨 뒤', () => {
+  it('구매가격 정렬, 기록 없는 게임은 맨 뒤', () => {
     expect(ids(sortGames(bought, { key: 'paid', dir: 'asc' }))).toEqual(['c', 'a', 'b'])
     expect(ids(sortGames(bought, { key: 'paid', dir: 'desc' }))).toEqual(['a', 'c', 'b'])
   })
-  it('낸 가격만 바꾸면 구입일·산 곳은 그대로', () => {
+  it('구매가격만 바꾸면 구입일·산 곳은 그대로', () => {
     const next = applyMinePatch(bought[0], { purchase: { paid: 28000 } })
     expect(next.mine.purchase).toEqual({ date: '2026-01-01', paid: 28000, shop: '보드엠' })
     expect(bought[0].mine.purchase.paid).toBe(30000)

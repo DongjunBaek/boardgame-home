@@ -10,7 +10,7 @@ type Props = {
   sort: Sort
   onSort: (key: SortKey) => void
   onOpen: (game: Game) => void
-  /** 표에서 바로 고치기 (제작사·인원·시간·정가·낸 가격·개수·해봤음·별점) */
+  /** 표에서 바로 고치기 (제작사·인원·시간·정가·구매가격·개수·해봤음·별점) */
   onEdit: (game: Game, patch: GameInput) => void
 }
 
@@ -21,7 +21,7 @@ const COLUMNS: { key: SortKey; label: string; className?: string }[] = [
   { key: 'players', label: '인원' },
   { key: 'time', label: '시간', className: 'num' },
   { key: 'price', label: '정가', className: 'num' },
-  { key: 'paid', label: '낸 가격', className: 'num' },
+  { key: 'paid', label: '구매가격', className: 'num' },
   { key: 'quantity', label: '개수', className: 'num' },
   { key: 'played', label: '해봄', className: 'center' },
   { key: 'rating', label: '별점' },
@@ -117,7 +117,7 @@ export default function GameTable({ games, sort, onSort, onOpen, onEdit }: Props
               </td>
               <td className="num">
                 <EditableCell
-                  label={`${g.title} 낸 가격`}
+                  label={`${g.title} 구매가격`}
                   display={formatPrice(g.mine.purchase.paid)}
                   initialText={g.mine.purchase.paid === null ? '' : String(g.mine.purchase.paid)}
                   parse={parseWon}

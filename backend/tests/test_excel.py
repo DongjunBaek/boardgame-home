@@ -96,7 +96,7 @@ def test_download_layout(saved):
     assert list(rows) == ["딕싯", "망령 열차", "카탄"]  # 제목순
     dixit = rows["딕싯"]
     assert dixit["게임 ID"] == "manual:a" and dixit["인원"] == "2-4인" and dixit["해봤음"] == "O"
-    assert dixit["구입일"] == datetime(2026, 10, 1) and dixit["낸 가격(원)"] == 45000
+    assert dixit["구입일"] == datetime(2026, 10, 1) and dixit["구매가격(원)"] == 45000
     assert rows["망령 열차"]["정가(원)"] is None and rows["망령 열차"]["해봤음"] == "X"
 
 
@@ -318,3 +318,16 @@ def test_blanks_file_upload_keeps_other_games(saved):
 
 def test_download_rejects_unknown_option(saved):
     assert client.get("/api/excel", params={"only": "x"}).status_code == 422
+
+
+def test_old_paid_header_is_still_accepted(saved):
+    # 열 이름을 '구매가격(원)'으로 바꾸기 전에 내려받은 엑셀도 올릴 수 있다
+    wb = load_workbook(io.BytesIO(edit(download(), {("딕싯", "구매가격(원)"): 39000})))
+    ws = wb[excel.SHEET]
+    cell = next(c for c in ws[1] if c.value == "구매가격(원)")
+    cell.value = "낸 가격(원)"
+    buf = io.BytesIO()
+    wb.save(buf)
+    rows = excel.read_workbook(buf.getvalue())
+    dixit = next(r for r in rows if r.cells.get("제목") == "딕싯")
+    assert dixit.cells["구매가격(원)"] == 39000

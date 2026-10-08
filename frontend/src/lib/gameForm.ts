@@ -119,7 +119,7 @@ export function inputFromForm(f: GameForm): { input: Full } | { errors: string[]
   }
   const time = int(f.time, 1, '시간은 1분 이상의 정수로 적어 주세요')
   const price = int(f.price, 0, '정가는 0원 이상의 정수로 적어 주세요')
-  const paid = int(f.purchasePaid, 0, '낸 가격은 0원 이상의 정수로 적어 주세요')
+  const paid = int(f.purchasePaid, 0, '구매가격은 0원 이상의 정수로 적어 주세요')
   const quantity = toInt(f.quantity)
   if (quantity === null || Number.isNaN(quantity) || quantity < 1) errors.push('개수는 1 이상이어야 합니다')
 
