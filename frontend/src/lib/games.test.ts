@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyGamePatch, applyMinePatch, currentValues, EMPTY_FILTERS, filterGames, hasBlanks, isFiltered, sortGames, summarize, type Filters } from './games'
+import { applyGamePatch, applyMinePatch, currentValues, EMPTY_FILTERS, filterGames, NO_PUBLISHER, publisherKey, publisherOptions, hasBlanks, isFiltered, sortGames, summarize, type Filters } from './games'
 import type { Game } from './types'
 
 function game(id: string, over: Partial<Omit<Game, 'mine'>> & { mine?: Partial<Game['mine']> } = {}): Game {
@@ -148,5 +148,40 @@ describe('게임 정보 바로 고치기', () => {
     })
     const changed = applyGamePatch(g, { play_time_minutes: 90 })
     expect(applyGamePatch(changed, currentValues(g, { play_time_minutes: 90 }))).toEqual(g)
+  })
+})
+
+describe('제작사', () => {
+  const list = [
+    game('a', { publisher: '사월 게임즈' }),
+    game('b', { publisher: '사월게임즈' }),
+    game('c', { publisher: '사월 게임즈' }),
+    game('d', { publisher: 'Team GRK' }),
+    game('e', { publisher: 'TEAM GRK' }),
+    game('f', { publisher: null }),
+    game('g', { publisher: '  ' }),
+    game('h', { publisher: '딜라이트' }),
+  ]
+  it('띄어쓰기·대소문자가 달라도 같은 묶음', () => {
+    expect(publisherKey('사월 게임즈')).toBe(publisherKey('사월게임즈'))
+    expect(publisherKey('Team GRK')).toBe(publisherKey('TEAM GRK'))
+    expect(publisherKey(null)).toBe(NO_PUBLISHER)
+    expect(publisherKey('  ')).toBe(NO_PUBLISHER)
+  })
+  it('목록: 많은 순, 가장 많이 쓴 표기, 제작사 없음은 맨 뒤', () => {
+    expect(publisherOptions(list).map((o) => [o.name, o.count])).toEqual([
+      ['사월 게임즈', 3],
+      ['Team GRK', 2], // 1:1이면 먼저 나온 표기
+      ['딜라이트', 1],
+      ['(제작사 없음)', 2],
+    ])
+  })
+  it('제작사로 거르기', () => {
+    const only = (publisher: string) => ids(filterGames(list, { ...EMPTY_FILTERS, publisher }))
+    expect(only(publisherKey('사월게임즈'))).toEqual(['a', 'b', 'c'])
+    expect(only(NO_PUBLISHER)).toEqual(['f', 'g'])
+  })
+  it('제작사순 정렬, 제작사 없음은 맨 뒤', () => {
+    expect(ids(sortGames(list, { key: 'publisher', dir: 'asc' })).slice(-2)).toEqual(['f', 'g'])
   })
 })

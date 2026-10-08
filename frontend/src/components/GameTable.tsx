@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { formatMinutes, formatPlayers, formatPrice, parseMinutes, parsePlayerInput, parseWon, shortGenre } from '../lib/format'
+import { formatMinutes, formatPlayers, formatPrice, parseMinutes, parsePlayerInput, parseText, parseWon, shortGenre } from '../lib/format'
 import type { Sort, SortKey } from '../lib/games'
 import type { Game, GameInput } from '../lib/types'
 import EditableCell from './EditableCell'
@@ -10,12 +10,13 @@ type Props = {
   sort: Sort
   onSort: (key: SortKey) => void
   onOpen: (game: Game) => void
-  /** 표에서 바로 고치기 (인원·시간·정가·낸 가격·개수·해봤음·별점) */
+  /** 표에서 바로 고치기 (제작사·인원·시간·정가·낸 가격·개수·해봤음·별점) */
   onEdit: (game: Game, patch: GameInput) => void
 }
 
 const COLUMNS: { key: SortKey; label: string; className?: string }[] = [
   { key: 'title', label: '제목', className: 'col-title' },
+  { key: 'publisher', label: '제작사', className: 'col-publisher' },
   { key: 'genre', label: '장르' },
   { key: 'players', label: '인원' },
   { key: 'time', label: '시간', className: 'num' },
@@ -59,7 +60,17 @@ export default function GameTable({ games, sort, onSort, onOpen, onEdit }: Props
                 <button type="button" className="title" onClick={() => onOpen(g)}>
                   {g.title}
                 </button>
-                {g.publisher && <div className="sub">{g.publisher}</div>}
+              </td>
+              <td className="col-publisher">
+                <EditableCell
+                  label={`${g.title} 제작사`}
+                  display={g.publisher}
+                  initialText={g.publisher ?? ''}
+                  parse={parseText}
+                  hint=""
+                  width={130}
+                  onSave={(publisher) => onEdit(g, { publisher })}
+                />
               </td>
               <td>
                 {g.genres.length

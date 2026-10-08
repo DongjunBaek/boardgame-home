@@ -1,8 +1,8 @@
 import { EXCEL_BLANKS_URL } from '../lib/api'
-import { EMPTY_FILTERS, isFiltered, type Filters, type PlayedFilter } from '../lib/games'
+import { EMPTY_FILTERS, isFiltered, type Filters, type PlayedFilter, type PublisherOption } from '../lib/games'
 import { GENRES, type Genre } from '../lib/types'
 
-type Props = { filters: Filters; onChange: (next: Filters) => void }
+type Props = { filters: Filters; publishers: PublisherOption[]; onChange: (next: Filters) => void }
 
 /** 빈칸이나 1 미만이면 null (조건 없음) */
 function toPositiveInt(text: string): number | null {
@@ -10,7 +10,7 @@ function toPositiveInt(text: string): number | null {
   return Number.isFinite(n) && n >= 1 ? n : null
 }
 
-export default function FilterBar({ filters, onChange }: Props) {
+export default function FilterBar({ filters, publishers, onChange }: Props) {
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) => onChange({ ...filters, [key]: value })
 
   return (
@@ -30,6 +30,23 @@ export default function FilterBar({ filters, onChange }: Props) {
             {g}
           </option>
         ))}
+      </select>
+      <select
+        className="filter-publisher"
+        aria-label="제작사"
+        value={filters.publisher}
+        onChange={(e) => set('publisher', e.target.value)}
+      >
+        <option value="">제작사 전체</option>
+        {publishers.map((p) => (
+          <option key={p.key} value={p.key}>
+            {p.name} ({p.count})
+          </option>
+        ))}
+        {/* 고르고 나서 그 제작사 이름을 바꿔 목록에서 사라진 경우 */}
+        {filters.publisher && !publishers.some((p) => p.key === filters.publisher) && (
+          <option value={filters.publisher}>(바뀐 제작사)</option>
+        )}
       </select>
       <label className="filter-num">
         <input

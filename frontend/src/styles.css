@@ -138,6 +138,10 @@ body {
   white-space: nowrap;
 }
 
+.filter-publisher {
+  max-width: 220px;
+}
+
 .filter-link {
   color: var(--accent);
   white-space: nowrap;
@@ -196,7 +200,19 @@ body {
 
 .game-table .col-title {
   white-space: normal;
-  min-width: 220px;
+  min-width: 200px;
+}
+
+.game-table .col-publisher {
+  white-space: normal;
+  max-width: 150px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.game-table .col-publisher .cell-btn {
+  color: inherit;
+  text-align: left;
 }
 
 .sort-btn {

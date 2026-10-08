@@ -4,7 +4,7 @@ import FilterBar from './components/FilterBar'
 import GameDialog from './components/GameDialog'
 import GameTable from './components/GameTable'
 import { EXCEL_DOWNLOAD_URL, fetchGames, updateGame } from './lib/api'
-import { applyGamePatch, currentValues, EMPTY_FILTERS, filterGames, isFiltered, sortGames, summarize, type Sort, type SortKey } from './lib/games'
+import { applyGamePatch, currentValues, EMPTY_FILTERS, filterGames, publisherOptions, isFiltered, sortGames, summarize, type Sort, type SortKey } from './lib/games'
 import type { ExcelReport, Game, GameInput } from './lib/types'
 
 type Load = { kind: 'loading' } | { kind: 'ok' } | { kind: 'error'; message: string }
@@ -58,6 +58,7 @@ export default function App() {
 
   const shown = useMemo(() => sortGames(filterGames(games, filters), sort), [games, filters, sort])
   const summary = useMemo(() => summarize(games), [games])
+  const publishers = useMemo(() => publisherOptions(games), [games])
 
   const onSort = (key: SortKey) =>
     setSort((s) =>
@@ -133,7 +134,7 @@ export default function App() {
       {load.kind === 'error' && <p className="status bad">목록을 불러오지 못했습니다 ({load.message})</p>}
       {load.kind === 'ok' && (
         <>
-          <FilterBar filters={filters} onChange={setFilters} />
+          <FilterBar filters={filters} publishers={publishers} onChange={setFilters} />
           <GameTable
             games={shown}
             sort={sort}

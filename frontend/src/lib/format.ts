@@ -33,3 +33,6 @@ export function parsePlayerInput(text: string): string[] | undefined {
   if (parts.some((p) => !/\d/.test(p))) return undefined
   return parts.map((p) => (/(인|gm)/i.test(p) ? p : `${p}인`))
 }
+
+/** 입력한 글자 → 저장할 글자. 앞뒤 공백을 빼고, 비면 null (지우기) */
+export const parseText = (text: string): string | null => text.trim() || null
