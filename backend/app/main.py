@@ -158,4 +158,5 @@ if FRONTEND_DIST.is_dir():
         file = FRONTEND_DIST / path
         if path and file.is_file() and FRONTEND_DIST in file.resolve().parents:
             return FileResponse(file)
-        return FileResponse(FRONTEND_DIST / "index.html")
+        # index.html은 매번 새로 확인하게 한다 (빌드 뒤에 옛 화면이 남지 않게). assets/는 이름에 해시가 있어 괜찮다
+        return FileResponse(FRONTEND_DIST / "index.html", headers={"Cache-Control": "no-cache"})

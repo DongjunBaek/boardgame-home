@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EMPTY_FILTERS, filterGames, hasBlanks, isFiltered, sortGames, summarize, type Filters } from './games'
+import { applyMinePatch, EMPTY_FILTERS, filterGames, hasBlanks, isFiltered, sortGames, summarize, type Filters } from './games'
 import type { Game } from './types'
 
 function game(id: string, over: Partial<Omit<Game, 'mine'>> & { mine?: Partial<Game['mine']> } = {}): Game {
@@ -109,5 +109,25 @@ describe('sortGames', () => {
 describe('summarize', () => {
   it('장르는 둘 다 해당하면 양쪽에 센다', () => {
     expect(summarize(GAMES)).toEqual({ total: 4, murder: 2, board: 3, unplayed: 3 })
+  })
+})
+
+describe('낸 가격', () => {
+  const bought = [
+    game('a', { mine: { purchase: { date: '2026-01-01', paid: 30000, shop: '보드엠' } } }),
+    game('b'),
+    game('c', { mine: { purchase: { date: null, paid: 12000, shop: null } } }),
+  ]
+  it('낸 가격 정렬, 기록 없는 게임은 맨 뒤', () => {
+    expect(ids(sortGames(bought, { key: 'paid', dir: 'asc' }))).toEqual(['c', 'a', 'b'])
+    expect(ids(sortGames(bought, { key: 'paid', dir: 'desc' }))).toEqual(['a', 'c', 'b'])
+  })
+  it('낸 가격만 바꾸면 구입일·산 곳은 그대로', () => {
+    const next = applyMinePatch(bought[0], { purchase: { paid: 28000 } })
+    expect(next.mine.purchase).toEqual({ date: '2026-01-01', paid: 28000, shop: '보드엠' })
+    expect(bought[0].mine.purchase.paid).toBe(30000)
+  })
+  it('다른 내 정보는 한 단계만 합친다', () => {
+    expect(applyMinePatch(bought[1], { rating: 3 }).mine).toMatchObject({ rating: 3, quantity: 1 })
   })
 })

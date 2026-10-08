@@ -4,7 +4,7 @@ import FilterBar from './components/FilterBar'
 import GameDialog from './components/GameDialog'
 import GameTable from './components/GameTable'
 import { EXCEL_DOWNLOAD_URL, fetchGames, updateGame } from './lib/api'
-import { EMPTY_FILTERS, filterGames, isFiltered, sortGames, summarize, type Sort, type SortKey } from './lib/games'
+import { applyMinePatch, EMPTY_FILTERS, filterGames, isFiltered, sortGames, summarize, type Sort, type SortKey } from './lib/games'
 import type { ExcelReport, Game, GameInput } from './lib/types'
 
 type Load = { kind: 'loading' } | { kind: 'ok' } | { kind: 'error'; message: string }
@@ -45,8 +45,7 @@ export default function App() {
 
   /** 표에서 바로 고치기: 먼저 화면에 반영하고, 저장에 실패하면 되돌린다 */
   async function editInline(game: Game, mine: NonNullable<GameInput['mine']>) {
-    const optimistic: Game = { ...game, mine: { ...game.mine, ...(mine as Partial<Game['mine']>) } }
-    replace(optimistic)
+    replace(applyMinePatch(game, mine))
     try {
       replace(await updateGame(game.id, { mine }))
     } catch (e) {

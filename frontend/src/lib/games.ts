@@ -1,6 +1,6 @@
 // 보유 목록 거르기·정렬·요약. 화면 상태와 무관한 순수 함수만 둔다.
 import { minPlayers, supportsPlayerCount } from './players'
-import type { Game, Genre } from './types'
+import type { Game, GameInput, Genre } from './types'
 
 export type PlayedFilter = 'all' | 'played' | 'unplayed'
 
@@ -48,7 +48,7 @@ export function filterGames(games: readonly Game[], f: Filters): Game[] {
   })
 }
 
-export type SortKey = 'title' | 'genre' | 'players' | 'time' | 'price' | 'quantity' | 'played' | 'rating'
+export type SortKey = 'title' | 'genre' | 'players' | 'time' | 'price' | 'paid' | 'quantity' | 'played' | 'rating'
 export type SortDir = 'asc' | 'desc'
 export type Sort = { key: SortKey; dir: SortDir }
 
@@ -66,6 +66,8 @@ function sortValue(g: Game, key: SortKey): string | number | null {
       return g.play_time_minutes
     case 'price':
       return g.price
+    case 'paid':
+      return g.mine.purchase.paid
     case 'quantity':
       return g.mine.quantity
     case 'played':
@@ -103,5 +105,14 @@ export function summarize(games: readonly Game[]): Summary {
     murder: games.filter((g) => g.genres.includes('머더미스터리')).length,
     board: games.filter((g) => g.genres.includes('보드게임')).length,
     unplayed: games.filter((g) => !g.mine.played).length,
+  }
+}
+
+/** 내 정보 수정 값을 게임에 반영한 새 게임 (구입 정보는 보낸 칸만 바꾼다). 서버의 합치기와 같다. */
+export function applyMinePatch(game: Game, mine: NonNullable<GameInput['mine']>): Game {
+  const { purchase, ...rest } = mine
+  return {
+    ...game,
+    mine: { ...game.mine, ...rest, purchase: { ...game.mine.purchase, ...purchase } },
   }
 }

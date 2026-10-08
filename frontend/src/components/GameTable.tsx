@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { formatMinutes, formatPlayers, formatPrice, shortGenre } from '../lib/format'
 import type { Sort, SortKey } from '../lib/games'
 import type { Game, GameInput } from '../lib/types'
+import PaidCell from './PaidCell'
 import StarRating from './StarRating'
 
 type Props = {
@@ -9,7 +10,7 @@ type Props = {
   sort: Sort
   onSort: (key: SortKey) => void
   onOpen: (game: Game) => void
-  /** 표에서 바로 고치기 (개수·해봤음·별점) */
+  /** 표에서 바로 고치기 (개수·해봤음·별점·낸 가격) */
   onEdit: (game: Game, mine: NonNullable<GameInput['mine']>) => void
 }
 
@@ -19,6 +20,7 @@ const COLUMNS: { key: SortKey; label: string; className?: string }[] = [
   { key: 'players', label: '인원' },
   { key: 'time', label: '시간', className: 'num' },
   { key: 'price', label: '정가', className: 'num' },
+  { key: 'paid', label: '낸 가격', className: 'num' },
   { key: 'quantity', label: '개수', className: 'num' },
   { key: 'played', label: '해봄', className: 'center' },
   { key: 'rating', label: '별점' },
@@ -71,6 +73,13 @@ export default function GameTable({ games, sort, onSort, onOpen, onEdit }: Props
               <td>{cell(formatPlayers(g.player_count))}</td>
               <td className="num">{cell(formatMinutes(g.play_time_minutes))}</td>
               <td className="num">{cell(formatPrice(g.price))}</td>
+              <td className="num">
+                <PaidCell
+                  title={g.title}
+                  value={g.mine.purchase.paid}
+                  onSave={(paid) => onEdit(g, { purchase: { paid } })}
+                />
+              </td>
               <td className="num">
                 <span className="stepper">
                   <button

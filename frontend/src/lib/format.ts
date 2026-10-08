@@ -8,3 +8,10 @@ export const formatPlayers = (counts: readonly string[]) => (counts.length ? cou
 
 const SHORT_GENRE: Record<string, string> = { 보드게임: '보드', 머더미스터리: '머더' }
 export const shortGenre = (genre: string) => SHORT_GENRE[genre] ?? genre
+
+/** 입력한 금액 → 원. "45,000원"·" 45000 " 허용, 빈칸은 null, 숫자가 아니면 undefined. */
+export function parseWon(text: string): number | null | undefined {
+  const cleaned = text.replaceAll(',', '').replace(/원$/, '').trim()
+  if (cleaned === '') return null
+  return /^\d+$/.test(cleaned) ? Number(cleaned) : undefined
+}

@@ -372,6 +372,39 @@ button:disabled {
   text-align: center;
 }
 
+.paid-btn {
+  min-width: 72px;
+  padding: 2px 4px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--text);
+  background: none;
+  border: 1px dashed transparent;
+  border-radius: 4px;
+  cursor: text;
+}
+
+.game-table tr:hover .paid-btn {
+  border-color: var(--border);
+}
+
+.paid-input {
+  width: 90px;
+  padding: 2px 4px;
+  font: inherit;
+  text-align: right;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+}
+
+.paid-input.invalid {
+  border-color: var(--bad);
+  background: var(--bad-bg);
+}
+
 .played-check {
   width: 16px;
   height: 16px;

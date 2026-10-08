@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatMinutes, formatPlayers, formatPrice, shortGenre } from './format'
+import { formatMinutes, formatPlayers, formatPrice, parseWon, shortGenre } from './format'
 
 describe('format', () => {
   it('가격은 천 단위 쉼표 + 원', () => {
@@ -15,5 +15,14 @@ describe('format', () => {
   it('장르 줄임말, 모르는 장르는 그대로', () => {
     expect(shortGenre('머더미스터리')).toBe('머더')
     expect(shortGenre('파티')).toBe('파티')
+  })
+  it('입력한 금액 읽기', () => {
+    expect(parseWon('45,000원')).toBe(45000)
+    expect(parseWon(' 45000 ')).toBe(45000)
+    expect(parseWon('0')).toBe(0)
+    expect(parseWon('  ')).toBeNull()
+    expect(parseWon('-1')).toBeUndefined()
+    expect(parseWon('4.5')).toBeUndefined()
+    expect(parseWon('사만원')).toBeUndefined()
   })
 })
