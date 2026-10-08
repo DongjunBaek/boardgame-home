@@ -6,6 +6,10 @@
   --border: #e3e1e8;
   --ok: #1f7a4d;
   --bad: #b3261e;
+  --accent: #5b3fd1;
+  --star: #c58a00;
+  --chip-board: #e3eefc;
+  --chip-murder: #fbe3e6;
 
   font: 15px/1.5 system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif;
   color: var(--text);
@@ -22,6 +26,10 @@
     --border: #35313c;
     --ok: #5cc98f;
     --bad: #ff8a80;
+    --accent: #a993ff;
+    --star: #f2c14e;
+    --chip-board: #22344d;
+    --chip-murder: #4a2630;
   }
 }
 
@@ -56,4 +64,181 @@ body {
 
 .status.bad {
   color: var(--bad);
+}
+
+/* --- 요약·거르기 --- */
+.summary {
+  margin: 0;
+  color: var(--muted);
+}
+
+.summary b {
+  color: var(--text);
+}
+
+.summary-filtered {
+  color: var(--accent);
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 16px 0 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.filter-bar input,
+.filter-bar select,
+.filter-bar button {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.filter-bar button:not(:disabled) {
+  cursor: pointer;
+}
+
+.filter-bar button:disabled {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.filter-q {
+  width: 200px;
+}
+
+.filter-num,
+.filter-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.filter-num input {
+  width: 64px;
+}
+
+/* --- 표 --- */
+.table-wrap {
+  /* 머리줄이 붙어 있도록 표 안에서 스크롤한다 */
+  max-height: calc(100vh - 190px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.game-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+.game-table th,
+.game-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.game-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+
+.game-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.game-table tbody tr:hover {
+  background: var(--surface);
+}
+
+.game-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.game-table .center {
+  text-align: center;
+}
+
+.game-table .col-title {
+  white-space: normal;
+  min-width: 220px;
+}
+
+.sort-btn {
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.sort-mark {
+  display: inline-block;
+  width: 1em;
+  margin-left: 2px;
+  font-size: 10px;
+  color: var(--accent);
+}
+
+.title {
+  font-weight: 500;
+}
+
+.sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.blank {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.chip {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  background: var(--chip-board);
+}
+
+.chip-murder {
+  background: var(--chip-murder);
+}
+
+.played {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+.rating {
+  color: var(--star);
+  letter-spacing: 1px;
+}
+
+.empty {
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
 }

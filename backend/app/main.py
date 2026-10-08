@@ -1,16 +1,28 @@
 """서버 진입점. /api 아래는 API, 그 밖의 주소는 빌드된 화면(frontend/dist)을 돌려준다."""
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.app.config import FRONTEND_DIST, data_dir
+from backend.app.store import DataFileCorruptedError, load_collection
 
 app = FastAPI(title="boardgame-home")
+
+
+@app.exception_handler(DataFileCorruptedError)
+def corrupted(_: Request, e: DataFileCorruptedError) -> JSONResponse:
+    return JSONResponse({"detail": str(e)}, status_code=500)
 
 
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok", "data_dir": str(data_dir())}
+
+
+@app.get("/api/games")
+def list_games() -> list[dict]:
+    # 99개 정도라 거르기·정렬은 화면에서 한다
+    return load_collection()
 
 
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])

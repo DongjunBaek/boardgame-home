@@ -1,6 +1,11 @@
+import json
+
 import pytest
 
+from backend.app.config import ROOT
 from backend.app.players import normalize_player_counts, parse_player_range, supports_player_count
+
+SHARED_CASES = json.loads((ROOT / "shared" / "player_cases.json").read_text(encoding="utf-8"))["supports"]
 
 
 @pytest.mark.parametrize(
@@ -37,6 +42,12 @@ def test_parse_player_range(text, expected):
 )
 def test_supports_player_count(counts, n, expected):
     assert supports_player_count(counts, n) is expected
+
+
+@pytest.mark.parametrize("case", SHARED_CASES, ids=lambda c: f"{c['counts']}-{c['n']}")
+def test_supports_player_count_shared_cases(case):
+    # 화면(players.ts)도 같은 사례로 검사한다
+    assert supports_player_count(case["counts"], case["n"]) is case["expected"]
 
 
 @pytest.mark.parametrize(

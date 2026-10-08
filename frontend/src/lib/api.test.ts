@@ -13,4 +13,8 @@ describe('fetchHealth', () => {
   it('실패 응답이면 오류를 던진다', async () => {
     await expect(fetchHealth(fakeFetch(500, {}))).rejects.toThrow('서버 오류 500')
   })
+
+  it('서버가 보낸 이유를 오류에 붙인다', async () => {
+    await expect(fetchHealth(fakeFetch(500, { detail: '파일 손상' }))).rejects.toThrow('서버 오류 500: /health - 파일 손상')
+  })
 })

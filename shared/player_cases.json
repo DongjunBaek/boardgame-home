@@ -1,0 +1,21 @@
+{
+  "_설명": "인원 판단 공통 테스트 사례. 서버(backend/tests/test_players.py)와 화면(frontend/src/lib/players.test.ts)이 같은 결과를 내는지 둘 다 이 파일로 검사한다.",
+  "supports": [
+    { "counts": ["2-4인"], "n": 2, "expected": true },
+    { "counts": ["2-4인"], "n": 4, "expected": true },
+    { "counts": ["2-4인"], "n": 5, "expected": false },
+    { "counts": ["2-4인"], "n": 1, "expected": false },
+    { "counts": ["2~4인"], "n": 3, "expected": true },
+    { "counts": ["2 - 4인"], "n": 3, "expected": true },
+    { "counts": ["6-3인"], "n": 4, "expected": true },
+    { "counts": ["4인용"], "n": 4, "expected": true },
+    { "counts": ["2인", "4인"], "n": 3, "expected": false },
+    { "counts": ["2인", "4인"], "n": 4, "expected": true },
+    { "counts": ["5+gm"], "n": 5, "expected": true },
+    { "counts": ["5+gm"], "n": 6, "expected": false },
+    { "counts": ["6-30인"], "n": 12, "expected": true },
+    { "counts": ["인원 미정"], "n": 4, "expected": false },
+    { "counts": [], "n": 4, "expected": false },
+    { "counts": null, "n": 4, "expected": false }
+  ]
+}
