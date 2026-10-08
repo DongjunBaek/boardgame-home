@@ -8,6 +8,3 @@ export const formatPlayers = (counts: readonly string[]) => (counts.length ? cou
 
 const SHORT_GENRE: Record<string, string> = { 보드게임: '보드', 머더미스터리: '머더' }
 export const shortGenre = (genre: string) => SHORT_GENRE[genre] ?? genre
-
-export const formatRating = (rating: number | null) =>
-  rating === null ? null : '★'.repeat(rating) + '☆'.repeat(Math.max(0, 5 - rating))

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatMinutes, formatPlayers, formatPrice, formatRating, shortGenre } from './format'
+import { formatMinutes, formatPlayers, formatPrice, shortGenre } from './format'
 
 describe('format', () => {
   it('가격은 천 단위 쉼표 + 원', () => {
@@ -15,9 +15,5 @@ describe('format', () => {
   it('장르 줄임말, 모르는 장르는 그대로', () => {
     expect(shortGenre('머더미스터리')).toBe('머더')
     expect(shortGenre('파티')).toBe('파티')
-  })
-  it('별점은 별 다섯 칸', () => {
-    expect(formatRating(4)).toBe('★★★★☆')
-    expect(formatRating(null)).toBeNull()
   })
 })

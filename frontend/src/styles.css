@@ -10,6 +10,9 @@
   --star: #c58a00;
   --chip-board: #e3eefc;
   --chip-murder: #fbe3e6;
+  --overlay: rgba(20, 16, 28, 0.45);
+  --ok-bg: #e5f4ec;
+  --bad-bg: #fde8e6;
 
   font: 15px/1.5 system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif;
   color: var(--text);
@@ -30,6 +33,9 @@
     --star: #f2c14e;
     --chip-board: #22344d;
     --chip-murder: #4a2630;
+    --overlay: rgba(0, 0, 0, 0.6);
+    --ok-bg: #173327;
+    --bad-bg: #3d1d1b;
   }
 }
 
@@ -46,6 +52,13 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   padding: 24px 16px;
+}
+
+.app-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .app-header h1 {
@@ -200,7 +213,19 @@ body {
 }
 
 .title {
+  font: inherit;
   font-weight: 500;
+  color: var(--text);
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.title:hover {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .sub {
@@ -226,19 +251,350 @@ body {
   background: var(--chip-murder);
 }
 
-.played {
-  color: var(--ok);
-  font-weight: 700;
-}
-
-.rating {
-  color: var(--star);
-  letter-spacing: 1px;
-}
 
 .empty {
   margin: 0;
   padding: 24px;
   text-align: center;
   color: var(--muted);
+}
+
+/* --- 버튼 공통 --- */
+button {
+  font: inherit;
+}
+
+.primary,
+.dialog-foot button,
+.confirm button {
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.primary {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  white-space: nowrap;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.danger {
+  color: #fff !important;
+  background: var(--bad) !important;
+  border-color: var(--bad) !important;
+}
+
+.danger-text {
+  color: var(--bad) !important;
+}
+
+.icon-btn {
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+.link-btn {
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* --- 알림 --- */
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 6px 8px 6px 12px;
+  border-radius: 8px;
+  background: var(--ok-bg);
+}
+
+.notice.error {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+/* --- 표 안에서 고치기 --- */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.stepper button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  /* 늘 보이되 흐리게, 줄에 마우스를 올리면 진하게 */
+  opacity: 0.35;
+}
+
+.game-table tr:hover .stepper button:not(:disabled),
+.stepper button:focus-visible {
+  opacity: 1;
+  border-color: var(--border);
+}
+
+.game-table tr:hover .stepper button:disabled {
+  opacity: 0.15;
+}
+
+.qty {
+  min-width: 1.5em;
+  text-align: center;
+}
+
+.played-check {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ok);
+  cursor: pointer;
+}
+
+.stars {
+  display: inline-flex;
+  white-space: nowrap;
+}
+
+.star {
+  padding: 0 1px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--border);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.star.on {
+  color: var(--star);
+}
+
+.star:hover {
+  transform: scale(1.2);
+}
+
+/* --- 상세 창 --- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px 16px;
+  overflow-y: auto;
+  background: var(--overlay);
+}
+
+.dialog {
+  width: min(720px, 100%);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  white-space: normal;
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dialog-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.dialog-body {
+  position: relative;
+  padding: 4px 18px 0;
+}
+
+.dialog-body h3 {
+  margin: 16px 0 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.cover {
+  float: right;
+  width: 120px;
+  height: 120px;
+  margin: 12px 0 8px 16px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.field.wide {
+  grid-column: 1 / -1;
+}
+
+.field-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.field input:not([type='checkbox']),
+.field textarea,
+.players-row select {
+  font: inherit;
+  width: 100%;
+  padding: 5px 8px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.checks label,
+label.checks {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.with-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.with-link a {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.players-input {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.players-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.players-row select {
+  width: auto;
+}
+
+.players-row input {
+  width: 70px !important;
+}
+
+.hint {
+  color: var(--muted);
+}
+
+.extra {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.extra-row {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 8px;
+}
+
+.extra dt {
+  color: var(--muted);
+}
+
+.extra dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.errors {
+  margin: 12px 0 0;
+  padding: 8px 12px 8px 28px;
+  color: var(--bad);
+  background: var(--bad-bg);
+  border-radius: 6px;
+}
+
+.dialog-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px -18px 0;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.confirm span {
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .fields {
+    grid-template-columns: 1fr;
+  }
 }

@@ -1,5 +1,6 @@
 # 개인 데이터 (git에 올리지 않는다)
 data/
+data-sandbox/
 handoff/*.json
 handoff/*.xlsx
 

@@ -1,6 +1,7 @@
 """보유 게임 목록 저장소 (data/collection.json).
 
-- 저장할 때마다 직전 파일을 data/backups/에 복사해 두고, 최근 BACKUP_KEEP개만 남긴다.
+- 저장할 때마다 직전 파일을 data/backups/에 복사해 둔다. 최근 BACKUP_KEEP개와,
+  최근 DAILY_KEEP일 동안 날마다 첫 백업을 남긴다 (표에서 여러 번 고쳐도 며칠 전 상태로 돌아갈 수 있게).
 - 쓰기는 원자적이다: 임시 파일에 끝까지 쓴 뒤 바꿔치기한다. 중간에 꺼져도 원래 파일은 그대로다.
 - 파일이 깨져 있으면 빈 목록으로 보지 않고 멈춘다 (빈 목록을 저장하면 데이터가 통째로 사라진다).
 """
@@ -18,6 +19,7 @@ from backend.app.config import data_dir
 COLLECTION_FILE = "collection.json"
 BACKUP_DIR = "backups"
 BACKUP_KEEP = 50
+DAILY_KEEP = 30
 
 _lock = threading.RLock()
 
@@ -26,6 +28,11 @@ class DataFileCorruptedError(Exception):
     def __init__(self, path: Path, reason: str):
         super().__init__(f"데이터 파일이 손상되었습니다: {path} ({reason})")
         self.path = path
+
+
+def collection_lock() -> threading.RLock:
+    """읽고-고치고-저장하는 동안 잡는다 (요청 두 개가 서로의 변경을 덮어쓰지 않게)."""
+    return _lock
 
 
 def collection_path() -> Path:
@@ -75,10 +82,17 @@ def _prune_backups() -> None:
     folder = backup_dir()
     if not folder.is_dir():
         return
-    # 이름에 시각이 들어 있어서 이름순 = 시간순
-    backups = sorted(folder.glob(f"{Path(COLLECTION_FILE).stem}-*.json"))
-    for old in backups[:-BACKUP_KEEP]:
-        old.unlink()
+    # 이름이 collection-YYYYMMDD-HHMMSS-ffffff.json이라 이름순 = 시간순
+    stem = Path(COLLECTION_FILE).stem
+    backups = sorted(folder.glob(f"{stem}-*.json"))
+    keep = set(backups[-BACKUP_KEEP:])
+    first_of_day: dict[str, Path] = {}
+    for b in backups:
+        first_of_day.setdefault(b.name[len(stem) + 1 : len(stem) + 9], b)
+    keep.update(sorted(first_of_day.values())[-DAILY_KEEP:])
+    for old in backups:
+        if old not in keep:
+            old.unlink()
 
 
 def _write_json_atomic(path: Path, data) -> None:

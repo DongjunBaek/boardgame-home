@@ -28,3 +28,12 @@ export type Game = {
   extra: Record<string, unknown>
   mine: Mine
 }
+
+/** 추가·수정 때 보내는 값. 보낸 칸만 바뀐다 (서버 backend/app/games.py의 GameIn). */
+export type GameInput = Partial<
+  Pick<Game, 'title' | 'genres' | 'player_count' | 'play_time_minutes' | 'price' | 'publisher' | 'sale_link'>
+> & {
+  mine?: Partial<Pick<Mine, 'quantity' | 'played' | 'rating' | 'review' | 'notes'>> & {
+    purchase?: Partial<Mine['purchase']>
+  }
+}
