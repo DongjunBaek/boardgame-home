@@ -1,13 +1,15 @@
 // 서버 API 호출. 개발 중에는 Vite가 /api를 FastAPI로 넘겨준다 (vite.config.ts).
-import type { Game, GameInput } from './types'
+import type { ExcelPreview, ExcelReport, Game, GameInput } from './types'
 
 export type Health = { status: string; data_dir: string }
 
 async function request<T>(method: string, path: string, body?: unknown, fetchFn: typeof fetch = fetch): Promise<T> {
+  // 파일(Blob)은 그대로, 나머지는 JSON으로 보낸다
+  const isFile = body instanceof Blob
   const res = await fetchFn(`/api${path}`, {
     method,
-    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: body === undefined ? undefined : { 'Content-Type': isFile ? 'application/octet-stream' : 'application/json' },
+    body: body === undefined ? undefined : isFile ? body : JSON.stringify(body),
   }).catch(() => {
     // 브라우저 오류는 "Failed to fetch" 같은 영어라서 바꿔 준다
     throw new Error('서버에 연결할 수 없습니다 (서버가 꺼져 있는지 확인해 주세요)')
@@ -37,3 +39,11 @@ export const updateGame = (id: string, patch: GameInput, fetchFn?: typeof fetch)
   request<Game>('PATCH', gamePath(id), patch, fetchFn)
 
 export const deleteGame = (id: string, fetchFn?: typeof fetch) => request<void>('DELETE', gamePath(id), undefined, fetchFn)
+
+export const EXCEL_DOWNLOAD_URL = '/api/excel'
+
+export const previewExcel = (file: Blob, fetchFn?: typeof fetch) =>
+  request<ExcelPreview>('POST', '/excel/preview', file, fetchFn)
+
+export const applyExcel = (file: Blob, base: string, fetchFn?: typeof fetch) =>
+  request<{ report: ExcelReport }>('POST', `/excel/apply?base=${encodeURIComponent(base)}`, file, fetchFn)

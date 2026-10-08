@@ -265,6 +265,7 @@ button {
 }
 
 .primary,
+.btn,
 .dialog-foot button,
 .confirm button {
   padding: 5px 14px;
@@ -597,4 +598,97 @@ label.checks {
   .fields {
     grid-template-columns: 1fr;
   }
+}
+
+/* --- 엑셀 --- */
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn {
+  display: inline-block;
+  font-size: 15px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+}
+
+.dialog-wide {
+  width: min(860px, 100%);
+}
+
+.file-name {
+  margin: 12px 0 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.import-counts {
+  margin: 4px 0 12px;
+}
+
+.errors p {
+  margin: 0 0 4px;
+}
+
+.errors ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.change {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.change h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.chip-new {
+  color: #fff;
+  background: var(--accent);
+}
+
+.change-table {
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.change-table th {
+  padding: 2px 12px 2px 0;
+  font-weight: 400;
+  color: var(--muted);
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.change-table td {
+  padding: 2px 6px;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.change-table .before {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.change-table .arrow {
+  color: var(--muted);
+}
+
+.change-table .after {
+  font-weight: 500;
 }

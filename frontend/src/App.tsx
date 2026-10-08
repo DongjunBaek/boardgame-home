@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import ExcelImportDialog from './components/ExcelImportDialog'
 import FilterBar from './components/FilterBar'
 import GameDialog from './components/GameDialog'
 import GameTable from './components/GameTable'
-import { fetchGames, updateGame } from './lib/api'
+import { EXCEL_DOWNLOAD_URL, fetchGames, updateGame } from './lib/api'
 import { EMPTY_FILTERS, filterGames, isFiltered, sortGames, summarize, type Sort, type SortKey } from './lib/games'
-import type { Game, GameInput } from './lib/types'
+import type { ExcelReport, Game, GameInput } from './lib/types'
 
 type Load = { kind: 'loading' } | { kind: 'ok' } | { kind: 'error'; message: string }
 type Notice = { kind: 'ok' | 'error'; text: string }
@@ -21,6 +22,7 @@ export default function App() {
   const [sort, setSort] = useState<Sort>({ key: 'title', dir: 'asc' })
   const [dialog, setDialog] = useState<DialogTarget>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
+  const [upload, setUpload] = useState<File | null>(null)
   const noticeTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
@@ -65,6 +67,18 @@ export default function App() {
     )
 
   const closeDialog = useCallback(() => setDialog(null), [])
+  const closeUpload = useCallback(() => setUpload(null), [])
+
+  async function afterExcel(report: ExcelReport) {
+    setUpload(null)
+    const { new: added, updated } = report.counts
+    try {
+      setGames(await fetchGames())
+      notify({ kind: 'ok', text: `엑셀 반영: 새 게임 ${added}개, 바뀐 게임 ${updated}개` })
+    } catch (e) {
+      notify({ kind: 'error', text: `엑셀은 반영했지만 목록을 다시 불러오지 못했습니다. 새로고침해 주세요 (${(e as Error).message})` })
+    }
+  }
 
   return (
     <div className="app">
@@ -85,9 +99,26 @@ export default function App() {
           )}
         </div>
         {load.kind === 'ok' && (
-          <button type="button" className="primary" onClick={() => setDialog('new')}>
-            + 게임 추가
-          </button>
+          <div className="header-actions">
+            <a className="btn" href={EXCEL_DOWNLOAD_URL} download>
+              엑셀 내려받기
+            </a>
+            <label className="btn">
+              엑셀 올리기
+              <input
+                type="file"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                hidden
+                onChange={(e) => {
+                  setUpload(e.target.files?.[0] ?? null)
+                  e.target.value = '' // 같은 파일을 다시 골라도 올라가게
+                }}
+              />
+            </label>
+            <button type="button" className="primary" onClick={() => setDialog('new')}>
+              + 게임 추가
+            </button>
+          </div>
         )}
       </header>
 
@@ -114,6 +145,8 @@ export default function App() {
           />
         </>
       )}
+
+      {upload && <ExcelImportDialog file={upload} onClose={closeUpload} onApplied={(r) => void afterExcel(r)} />}
 
       {dialog && (
         <GameDialog

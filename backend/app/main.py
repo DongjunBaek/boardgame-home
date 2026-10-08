@@ -1,11 +1,17 @@
 """서버 진입점. /api 아래는 API, 그 밖의 주소는 빌드된 화면(frontend/dist)을 돌려준다."""
+import hashlib
+import json
+from datetime import date
+from urllib.parse import quote
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+from backend.app import excel
 from backend.app.config import FRONTEND_DIST, data_dir
-from backend.app.games import GameConflictError, GameIn, apply_patch, new_game
+from backend.app.games import GameConflictError, GameIn, apply_patch, describe_error, new_game
 from backend.app.store import DataFileCorruptedError, collection_lock, load_collection, save_collection
 
 app = FastAPI(title="boardgame-home")
@@ -21,23 +27,10 @@ def health() -> dict:
     return {"status": "ok", "data_dir": str(data_dir())}
 
 
-FIELD_LABELS = {
-    "title": "제목", "genres": "장르", "player_count": "인원", "play_time_minutes": "시간", "price": "정가",
-    "publisher": "제작사", "sale_link": "판매 링크", "images": "이미지", "tags": "태그", "quantity": "개수",
-    "played": "해봤음", "rating": "별점", "review": "후기", "notes": "메모", "date": "구입일", "paid": "낸 가격",
-    "shop": "산 곳",
-}
-
-
 @app.exception_handler(RequestValidationError)
 def invalid_input(_: Request, e: RequestValidationError) -> JSONResponse:
-    # 화면에 그대로 보여 줄 한 줄: "별점: Input should be less than or equal to 5"
-    parts = []
-    for err in e.errors():
-        field = next((str(x) for x in reversed(err["loc"]) if isinstance(x, str) and x != "body"), "")
-        msg = err["msg"].removeprefix("Value error, ")
-        parts.append(f"{FIELD_LABELS.get(field, field)}: {msg}" if field else msg)
-    return JSONResponse({"detail": " / ".join(parts)}, status_code=422)
+    # 화면에 그대로 보여 줄 한 줄: "별점: 5 이하여야 합니다"
+    return JSONResponse({"detail": " / ".join(describe_error(err) for err in e.errors())}, status_code=422)
 
 
 @app.exception_handler(GameConflictError)
@@ -83,6 +76,69 @@ def delete_game(game_id: str) -> Response:
             raise HTTPException(404, f"없는 게임입니다: {game_id}")
         save_collection(rest)
     return Response(status_code=204)
+
+
+# ---------- 엑셀 ----------
+
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+MAX_UPLOAD = 5 * 1024 * 1024
+
+
+def _version(games: list[dict]) -> str:
+    """목록 내용의 지문. 미리보기 뒤에 목록이 바뀌었는지 알아보는 데 쓴다."""
+    return hashlib.md5(json.dumps(games, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+async def _read_upload(request: Request) -> bytes:
+    data = await request.body()
+    if not data:
+        raise HTTPException(422, "파일이 비어 있습니다")
+    if len(data) > MAX_UPLOAD:
+        raise HTTPException(422, "파일이 너무 큽니다 (5MB까지)")
+    return data
+
+
+def _plan_upload(data: bytes, games: list[dict]) -> tuple[list[dict], dict]:
+    try:
+        return excel.plan_import(games, excel.read_workbook(data))
+    except excel.ExcelReadError as e:
+        raise HTTPException(422, str(e)) from e
+
+
+@app.get("/api/excel")
+def download_excel() -> Response:
+    today = date.today()
+    name = f"내보드게임_{today:%Y%m%d}.xlsx"
+    return Response(
+        excel.build_workbook(load_collection(), today),
+        media_type=XLSX,
+        # 한글 파일 이름은 filename*로, 옛 브라우저용 filename은 영어로
+        headers={"Content-Disposition": f"attachment; filename=\"boardgame_{today:%Y%m%d}.xlsx\"; filename*=UTF-8''{quote(name)}"},
+    )
+
+
+@app.post("/api/excel/preview")
+async def preview_excel(request: Request) -> dict:
+    data = await _read_upload(request)
+    games = load_collection()
+    _, report = _plan_upload(data, games)
+    return {"base": _version(games), "report": report}
+
+
+@app.post("/api/excel/apply")
+async def apply_excel(request: Request, base: str) -> dict:
+    # 파일을 다 받은 뒤에 잠근다 (기다리는 동안 잠금을 쥐고 있지 않게)
+    data = await _read_upload(request)
+    with collection_lock():
+        games = load_collection()
+        if _version(games) != base:
+            raise HTTPException(409, "미리보기 뒤에 목록이 바뀌었습니다. 엑셀을 다시 올려 미리보기부터 해 주세요")
+        new_games, report = _plan_upload(data, games)
+        if report["errors"]:
+            raise HTTPException(422, "오류가 있는 행이 있어 적용하지 않았습니다. 엑셀을 고쳐 다시 올려 주세요")
+        if report["changes"]:
+            save_collection(new_games)
+    return {"report": report}
 
 
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])

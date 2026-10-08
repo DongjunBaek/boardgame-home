@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deleteGame, fetchHealth, updateGame } from './api'
+import { applyExcel, deleteGame, fetchHealth, updateGame } from './api'
 
 type Call = { url: string; init?: RequestInit }
 
@@ -37,6 +37,15 @@ describe('request', () => {
       throw new TypeError('Failed to fetch')
     }) as typeof fetch
     await expect(fetchHealth(down)).rejects.toThrow('서버에 연결할 수 없습니다')
+  })
+
+  it('파일은 JSON으로 바꾸지 않고 그대로 보낸다', async () => {
+    const calls: Call[] = []
+    const file = new Blob(['xlsx'])
+    await applyExcel(file, 'ab cd', fakeFetch(200, { report: {} }, calls))
+    expect(calls[0].url).toBe('/api/excel/apply?base=ab%20cd')
+    expect(calls[0].init?.body).toBe(file)
+    expect(new Headers(calls[0].init?.headers).get('Content-Type')).toBe('application/octet-stream')
   })
 
   it('204 응답은 본문 없이 끝난다', async () => {

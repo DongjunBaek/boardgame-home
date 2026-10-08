@@ -16,6 +16,39 @@ from backend.app.players import normalize_player_counts, parse_player_range
 
 GENRES = ("보드게임", "머더미스터리")
 
+# 입력 오류를 보여 줄 때 쓰는 칸 이름
+FIELD_LABELS = {
+    "title": "제목", "genres": "장르", "player_count": "인원", "play_time_minutes": "시간", "price": "정가",
+    "publisher": "제작사", "sale_link": "판매 링크", "images": "이미지", "tags": "태그", "quantity": "개수",
+    "played": "해봤음", "rating": "별점", "review": "후기", "notes": "메모", "date": "구입일", "paid": "낸 가격",
+    "shop": "산 곳",
+}
+
+
+def describe_error(err: dict) -> str:
+    """pydantic 오류 하나 → "별점: 5 이하여야 합니다" 같은 한 줄."""
+    field = next((str(x) for x in reversed(err["loc"]) if isinstance(x, str) and x != "body"), "")
+    kind, ctx = err["type"], err.get("ctx") or {}
+    if err.get("input", "") is None and kind not in ("value_error",):
+        msg = "비울 수 없습니다"
+    elif kind == "greater_than_equal":
+        msg = f"{ctx['ge']} 이상이어야 합니다"
+    elif kind == "less_than_equal":
+        msg = f"{ctx['le']} 이하여야 합니다"
+    elif kind == "string_too_short":
+        msg = "비울 수 없습니다"
+    elif kind in ("int_type", "int_parsing", "int_from_float"):
+        msg = "정수여야 합니다"
+    elif kind.startswith("date"):
+        msg = "날짜(예: 2026-10-01)가 아닙니다"
+    elif kind.startswith("bool"):
+        msg = "참/거짓 값이 아닙니다"
+    elif kind == "extra_forbidden":
+        msg = "고칠 수 없는 칸입니다"
+    else:
+        msg = err["msg"].removeprefix("Value error, ")
+    return f"{FIELD_LABELS.get(field, field)}: {msg}" if field else msg
+
 
 class GameConflictError(Exception):
     """같은 제목의 게임이 이미 있다."""

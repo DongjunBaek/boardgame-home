@@ -163,3 +163,19 @@ def test_delete(saved):
     assert client.delete("/api/games/manual:a").status_code == 204
     assert [g["id"] for g in store.load_collection()] == ["naver:1"]
     assert client.delete("/api/games/manual:a").status_code == 404
+
+
+@pytest.mark.parametrize(
+    "body, message",
+    [
+        ({"mine": {"rating": 6}}, "별점: 5 이하여야 합니다"),
+        ({"mine": {"quantity": 0}}, "개수: 1 이상이어야 합니다"),
+        ({"mine": {"quantity": None}}, "개수: 비울 수 없습니다"),
+        ({"price": "많이"}, "정가: 정수여야 합니다"),
+        ({"title": " "}, "제목: 비울 수 없습니다"),
+        ({"mine": {"purchase": {"date": "어제"}}}, "구입일: 날짜(예: 2026-10-01)가 아닙니다"),
+        ({"extra": {}}, "extra: 고칠 수 없는 칸입니다"),
+    ],
+)
+def test_error_messages_are_korean(saved, body, message):
+    assert client.patch("/api/games/manual:a", json=body).json()["detail"] == message

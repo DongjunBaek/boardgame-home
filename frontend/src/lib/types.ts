@@ -37,3 +37,20 @@ export type GameInput = Partial<
     purchase?: Partial<Mine['purchase']>
   }
 }
+
+/** 엑셀 올리기 미리보기 (서버 backend/app/excel.py의 plan_import 보고서) */
+export type ExcelChange = {
+  row: number
+  id: string
+  title: string
+  kind: 'new' | 'update'
+  fields: { field: string; before: string; after: string }[]
+}
+
+export type ExcelReport = {
+  changes: ExcelChange[]
+  errors: string[]
+  counts: { new: number; updated: number; unchanged: number; not_in_file: number }
+}
+
+export type ExcelPreview = { base: string; report: ExcelReport }
