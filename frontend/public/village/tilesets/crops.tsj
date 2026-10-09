@@ -7,9 +7,9 @@
   "tileheight": 16,
   "image": "crops.png",
   "imagewidth": 96,
-  "imageheight": 32,
+  "imageheight": 48,
   "columns": 6,
-  "tilecount": 12,
+  "tilecount": 18,
   "margin": 0,
   "spacing": 0
 }

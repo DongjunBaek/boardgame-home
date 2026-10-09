@@ -414,6 +414,19 @@ def harvest_village() -> dict:
     return {"harvested": got, "village": village.view(state, now)}
 
 
+@app.post("/api/village/research")
+def research_village() -> dict:
+    """작물 레벨을 하나 올린다. 밭에 쌓인 코인은 옛 레벨로 먼저 거둔다."""
+    now = _now()
+    with collection_lock():
+        try:
+            state, harvested, cost = village.research(_village(), now)
+        except village.ResearchError as e:
+            raise HTTPException(409, str(e)) from e
+        save_json(village.VILLAGE_FILE, state)
+    return {"harvested": harvested, "cost": cost, "village": village.view(state, now)}
+
+
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 def api_not_found(path: str) -> JSONResponse:
     # 없는 API 주소가 화면(index.html)으로 빠지지 않게 막는다

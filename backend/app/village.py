@@ -16,6 +16,13 @@ VERSION = 1
 # 밭: 작물 레벨별 시간당 코인 (임시 숫자, docs/questions.md 18번). 화면을 꺼 둔 동안 FARM_CAP_HOURS까지 쌓인다
 CROP_RATES = {1: 10, 2: 25, 3: 60}
 FARM_CAP_HOURS = 12
+# 연구소: 그 레벨로 올리는 데 드는 코인 (임시 숫자, docs/questions.md 29번). 시간은 걸리지 않는다
+CROP_COSTS = {2: 300, 3: 1500}
+MAX_CROP_LEVEL = max(CROP_RATES)
+
+
+class ResearchError(Exception):
+    """올릴 수 없는 경우 (최고 레벨, 코인 모자람). 화면에 그대로 보여 줄 문장을 담는다."""
 
 MapName = Literal["village"]
 Facing = Literal["down", "up", "left", "right"]
@@ -81,9 +88,17 @@ def farm(state: dict, now: datetime) -> dict:
     }
 
 
+def lab(state: dict) -> dict | None:
+    """다음 레벨 연구 정보. 최고 레벨이면 None."""
+    level = state["crop_level"] + 1
+    if level > MAX_CROP_LEVEL:
+        return None
+    return {"next_level": level, "cost": CROP_COSTS[level], "next_rate": CROP_RATES[level]}
+
+
 def view(state: dict, now: datetime) -> dict:
-    """화면에 보내는 모양: 저장된 상태 + 지금 시각 기준 밭 계산 + 서버 시각 (화면이 남은 시간을 셀 때 쓴다)."""
-    return {**state, "farm": farm(state, now), "server_time": now.isoformat(timespec="seconds")}
+    """화면에 보내는 모양: 저장된 상태 + 지금 시각 기준 밭 계산 + 다음 연구 + 서버 시각 (화면이 남은 시간을 셀 때 쓴다)."""
+    return {**state, "farm": farm(state, now), "lab": lab(state), "server_time": now.isoformat(timespec="seconds")}
 
 
 def harvest(state: dict, now: datetime) -> tuple[dict, int]:
@@ -105,4 +120,22 @@ def harvest(state: dict, now: datetime) -> tuple[dict, int]:
         used = timedelta(seconds=got * 3600 / info["rate_per_hour"])
         new["last_harvest"] = (since + used).isoformat(timespec="milliseconds")
     return new, got
+
+
+def research(state: dict, now: datetime) -> tuple[dict, int, int]:
+    """작물 레벨을 하나 올린다. (새 상태, 먼저 거둔 코인, 쓴 코인).
+
+    레벨을 올리기 전에 밭에 쌓인 코인을 옛 레벨로 먼저 거둔다.
+    그러지 않으면 지난 시간까지 새 레벨로 계산되어 코인이 더 생긴다.
+    """
+    info = lab(state)
+    if info is None:
+        raise ResearchError("이미 최고 레벨입니다")
+    settled, harvested = harvest(state, now)
+    if settled["coins"] < info["cost"]:
+        raise ResearchError(f"코인이 모자랍니다 (필요 {info['cost']}, 가진 코인 {settled['coins']})")
+    new = copy.deepcopy(settled)
+    new["coins"] -= info["cost"]
+    new["crop_level"] = info["next_level"]
+    return new, harvested, info["cost"]
 

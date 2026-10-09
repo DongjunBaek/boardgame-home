@@ -30,6 +30,10 @@ TILESETS = {
     "crops": "Objects/Basic Plants.png",
 }
 
+# 작물: 줄마다 씨앗 봉투 · 자라는 4단계 · 거둔 열매. 1줄 밀(LV1), 2줄 분홍 열매(LV2), 3줄은 2줄의 열매 색을 바꾼 파란 열매(LV3)
+BERRY = ["#713970", "#8a4a70", "#a35b70", "#af6776", "#bd757e", "#d99a9a"]
+BLUEBERRY = ["#4c468b", "#555793", "#5f699c", "#7180b1", "#8599c7", "#92b2d4"]
+
 # 지붕 색 바꾸기: 원래 지붕 갈색 5단계 → 팔레트의 다른 5단계 (어두운 것부터)
 ROOF = ["#754c60", "#90625d", "#aa7959", "#b68962", "#c49a6c"]
 ROOF_SWAPS = {
@@ -177,6 +181,13 @@ def icon(colors: dict[str, str], rows: list[str]) -> Image.Image:
     return im
 
 
+def crops_with_lv3(im: Image.Image) -> Image.Image:
+    out = Image.new("RGBA", (im.width, im.height + T))
+    out.alpha_composite(im, (0, 0))
+    out.alpha_composite(recolor(im.crop((0, T, im.width, 2 * T)), BERRY, BLUEBERRY), (0, im.height))
+    return out
+
+
 def tileset_json(name: str, image: Image.Image, extra: dict | None = None) -> dict:
     data = {
         "type": "tileset",
@@ -209,6 +220,8 @@ def main() -> None:
 
     for name, rel in TILESETS.items():
         im = src(rel)
+        if name == "crops":
+            im = crops_with_lv3(im)
         im.save(tilesets / f"{name}.png")
         extra = None
         if name == "water":

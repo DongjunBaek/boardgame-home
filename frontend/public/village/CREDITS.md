@@ -16,6 +16,7 @@ Assets -From : Sprout Lands -By : Cup Nooble
   - `buildings/*.png`: 나무집 지붕·벽·문·창 조각을 이어 붙여 만들었다. `shop`·`lab`은 지붕 색을 팩 팔레트 안의 다른 색으로 바꿨다.
   - `tilesets/collision.png`: 직접 만든 표시용 칸 (화면에는 그리지 않는다).
   - `icons/coin.png`, `icons/crystal.png`: 팩에 없어서 팩 팔레트 색으로 직접 찍었다.
+  - `tilesets/crops.png` 3번째 줄: 2번째 줄 작물의 열매 색을 팩 팔레트의 파랑으로 바꿨다 (LV3 작물).
   - 나머지 PNG는 원본을 그대로 복사했다. 만드는 방법: `scripts/build_village_assets.py`
 
 ## 글꼴: Galmuri

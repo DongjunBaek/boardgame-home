@@ -2008,6 +2008,18 @@ label.checks {
   color: var(--v-ink-soft);
 }
 
+.village-panel p.village-lab-next {
+  margin: 8px 0 2px;
+}
+
+.village-lab-next b {
+  color: var(--v-leaf);
+}
+
+.village-panel p.village-soon + .village-button {
+  margin-top: 8px;
+}
+
 .village-button {
   width: 100%;
   padding: 6px 0 7px;

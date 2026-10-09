@@ -15,8 +15,8 @@ def test_first_get_creates_default_state(isolated_data_dir):
     assert state["coins"] == 0 and state["crystals"] == 0 and state["crop_level"] == 1
     assert state["player"] is None and state["skins"] == {"player": "default", "buildings": {}}
     saved = json.loads((isolated_data_dir / village.VILLAGE_FILE).read_text(encoding="utf-8"))
-    # 파일에는 상태만, 화면에는 밭 계산과 서버 시각을 더해 보낸다
-    assert saved == {k: v for k, v in state.items() if k not in ("farm", "server_time")}
+    # 파일에는 상태만, 화면에는 밭 계산·다음 연구·서버 시각을 더해 보낸다
+    assert saved == {k: v for k, v in state.items() if k not in ("farm", "lab", "server_time")}
     # 두 번째로 읽어도 처음 만든 시각이 그대로다
     assert client.get("/api/village").json()["last_harvest"] == state["last_harvest"]
 
@@ -107,3 +107,59 @@ def test_harvest_api_saves_and_returns_view(isolated_data_dir, monkeypatch):
     assert res["harvested"] == 30 and res["village"]["coins"] == 30 and res["village"]["farm"]["pending"] == 0
     saved = json.loads((isolated_data_dir / village.VILLAGE_FILE).read_text(encoding="utf-8"))
     assert saved["coins"] == 30 and "farm" not in saved and "server_time" not in saved
+
+
+# ---------- 연구소 ----------
+
+
+def test_lab_info_until_max_level():
+    assert village.lab(state_at(T0)) == {"next_level": 2, "cost": 300, "next_rate": 25}
+    assert village.lab(state_at(T0, level=2)) == {"next_level": 3, "cost": 1500, "next_rate": 60}
+    assert village.lab(state_at(T0, level=3)) is None
+
+
+def test_research_settles_farm_at_old_level_first():
+    # 3시간 쌓임: 옛 레벨(10/시간)로 30을 먼저 거두고 300을 쓴다
+    now = datetime(2026, 10, 9, 12, 0)
+    s, harvested, cost = village.research(state_at(T0, coins=290), now)
+    assert (harvested, cost) == (30, 300)
+    assert s["coins"] == 20 and s["crop_level"] == 2
+    assert village.farm(s, now)["pending"] == 0 and village.farm(s, now)["rate_per_hour"] == 25
+
+
+def test_research_errors_change_nothing():
+    poor = state_at(T0, coins=10)
+    try:
+        village.research(poor, datetime(2026, 10, 9, 10, 0))
+    except village.ResearchError as e:
+        assert "필요 300" in str(e) and "가진 코인 20" in str(e)
+    else:
+        raise AssertionError("코인이 모자라면 실패해야 한다")
+    assert poor["coins"] == 10 and poor["crop_level"] == 1
+
+    try:
+        village.research(state_at(T0, level=3, coins=99999), T0)
+    except village.ResearchError as e:
+        assert "최고 레벨" in str(e)
+    else:
+        raise AssertionError("최고 레벨이면 실패해야 한다")
+
+
+def test_research_api(isolated_data_dir, monkeypatch):
+    from backend.app import main
+
+    monkeypatch.setattr(main, "_now", lambda: T0)
+    assert client.get("/api/village").json()["lab"] == {"next_level": 2, "cost": 300, "next_rate": 25}
+    res = client.post("/api/village/research")
+    assert res.status_code == 409 and "코인이 모자랍니다" in res.json()["detail"]
+    assert not list(backup_dir().glob("village-*.json"))  # 실패하면 쓰지 않는다
+
+    # 30시간 뒤: 12시간치 120을 거두고도 모자라므로, 코인을 넣어 두고 다시
+    path = isolated_data_dir / village.VILLAGE_FILE
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    path.write_text(json.dumps({**saved, "coins": 200}), encoding="utf-8")
+    monkeypatch.setattr(main, "_now", lambda: datetime(2026, 10, 10, 15, 0))
+    body = client.post("/api/village/research").json()
+    assert body["harvested"] == 120 and body["cost"] == 300
+    assert body["village"]["coins"] == 20 and body["village"]["crop_level"] == 2
+    assert body["village"]["lab"]["next_level"] == 3

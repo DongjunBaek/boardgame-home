@@ -12,6 +12,7 @@ const state = (last: string, serverTime: string, rate = 10): VillageState => ({
   skins: { player: 'default', buildings: {} },
   player: null,
   farm: { rate_per_hour: rate, cap_hours: 12, pending: 0, full_at: '' },
+  lab: null,
   server_time: serverTime,
 })
 

@@ -105,6 +105,10 @@ export const saveVillagePlayer = (spot: PlayerSpot) => request<VillageState>('PU
 /** 밭에 쌓인 코인 거두기. 거둘 것이 없으면 harvested가 0이다 */
 export const harvestVillage = () => request<{ harvested: number; village: VillageState }>('POST', '/village/harvest')
 
+/** 작물 레벨 올리기. 밭에 쌓인 코인은 서버가 옛 레벨로 먼저 거둔다 (harvested). 못 올리면 이유를 담은 오류 */
+export const researchVillage = () =>
+  request<{ harvested: number; cost: number; village: VillageState }>('POST', '/village/research')
+
 /** 화면을 떠날 때: 페이지가 닫혀도 요청이 끝까지 가도록 keepalive로 보낸다 */
 export function saveVillagePlayerOnLeave(spot: PlayerSpot) {
   void fetch('/api/village/player', {

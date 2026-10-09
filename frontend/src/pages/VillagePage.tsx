@@ -1,7 +1,7 @@
 import { X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import '../village-fonts.css'
-import { fetchVillage, harvestVillage, saveVillagePlayer, saveVillagePlayerOnLeave } from '../lib/api'
+import { fetchVillage, harvestVillage, researchVillage, saveVillagePlayer, saveVillagePlayerOnLeave } from '../lib/api'
 import { clockOffset, farmNow, formatLeft, growthStage, type FarmNow } from '../lib/village/farm'
 import { createVillageScene, type VillageScene } from '../lib/village/scene'
 import { isPlace, PLACES, type PlaceKind, type VillageState } from '../lib/village/state'
@@ -46,12 +46,13 @@ export default function VillagePage() {
 
   const farm = state ? farmNow(state, offset, now) : null
   const stage = farm ? growthStage(farm.ratio) : 1
-  // 캔버스가 늦게 만들어져도 지금 단계로 시작하게 기억해 둔다
-  const stageRef = useRef(stage)
+  const level = state?.crop_level ?? 1
+  // 캔버스가 늦게 만들어져도 지금 작물로 시작하게 기억해 둔다
+  const cropRef = useRef({ level, stage })
   useEffect(() => {
-    stageRef.current = stage
-    sceneRef.current?.setGrowth(stage)
-  }, [stage])
+    cropRef.current = { level, stage }
+    sceneRef.current?.setCrop(level, stage)
+  }, [level, stage])
 
   useEffect(() => {
     const host = hostRef.current
@@ -78,7 +79,7 @@ export default function VillagePage() {
         if (cancelled) return s.destroy()
         scene = s
         sceneRef.current = s
-        s.setGrowth(stageRef.current)
+        s.setCrop(cropRef.current.level, cropRef.current.stage)
       })
       .catch((e: Error) => !cancelled && setError(e.message))
 
@@ -163,6 +164,8 @@ function PlacePanel({ kind, state, farm, onClose, onHarvested }: PanelProps) {
       <p>{place.about}</p>
       {kind === 'farm' ? (
         <FarmBody state={state} farm={farm} onHarvested={onHarvested} />
+      ) : kind === 'lab' ? (
+        <LabBody state={state} farm={farm} onResearched={onHarvested} />
       ) : (
         <p className="village-soon">준비 중 · {place.stage}에서 열립니다</p>
       )}
@@ -204,6 +207,56 @@ function FarmBody({ state, farm, onHarvested }: { state: VillageState; farm: Far
       <button type="button" className="village-button" onClick={() => void harvest()} disabled={busy || farm.pending === 0}>
         거두기
       </button>
+      {note && <p className={`village-note${note.ok ? '' : ' muted'}`}>{note.text}</p>}
+    </>
+  )
+}
+
+function LabBody({ state, farm, onResearched }: { state: VillageState; farm: FarmNow; onResearched: (s: VillageState) => void }) {
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
+  const next = state.lab
+  // 올릴 때 밭에 쌓인 코인을 먼저 거두므로 그것까지 쳐서 본다 (최종 판단은 서버가 한다)
+  const usable = state.coins + farm.pending
+  const short = next ? Math.max(0, next.cost - usable) : 0
+
+  async function research() {
+    setBusy(true)
+    try {
+      const res = await researchVillage()
+      onResearched(res.village)
+      const got = res.harvested ? ` 밭에서 코인 ${res.harvested}개를 먼저 거뒀습니다.` : ''
+      setNote({ ok: true, text: `작물 레벨이 LV${res.village.crop_level}로 올랐습니다.${got}` })
+    } catch (e) {
+      setNote({ ok: false, text: (e as Error).message })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <p className="village-stat">
+        지금 작물 LV{state.crop_level} · 시간당 코인 {state.farm.rate_per_hour}
+      </p>
+      {next ? (
+        <>
+          <p className="village-lab-next">
+            다음 LV{next.next_level} · 시간당 코인 <b>{next.next_rate}</b>
+          </p>
+          <p className="village-meter-text">
+            <img src={COIN_URL} alt="" width={16} height={16} />
+            {next.cost.toLocaleString('ko-KR')}
+            <span>{short ? `코인 ${short.toLocaleString('ko-KR')}개 더 필요합니다` : '올릴 수 있습니다'}</span>
+          </p>
+          {farm.pending > 0 && <p className="village-soon">밭에 쌓인 코인 {farm.pending}개는 지금 레벨로 먼저 거둡니다</p>}
+          <button type="button" className="village-button" onClick={() => void research()} disabled={busy || short > 0}>
+            LV{next.next_level}로 올리기
+          </button>
+        </>
+      ) : (
+        <p className="village-soon">최고 레벨입니다</p>
+      )}
       {note && <p className={`village-note${note.ok ? '' : ' muted'}`}>{note.text}</p>}
     </>
   )
