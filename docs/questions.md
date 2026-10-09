@@ -4,7 +4,14 @@
 
 ## 열린 질문
 
-없음 (2026-10-09에 모두 답을 받음)
+### 동아리 회비 관리 기획 (2026-10-09) → [features/club-dues.md](features/club-dues.md)
+
+| # | 질문 | 지금 기본값 |
+|---|---|---|
+| 9 | 회비 구분 처음 값 | 정회원 · 준회원 · 면제. 금액은 직접 적는다 |
+| 10 | 현황표 기본 연도 | 올해 |
+| 11 | 휴면 회원을 현황표에 보일지 | 보이되 흐리게 |
+| 12 | 회원 정렬 | 이름순 |
 
 ## 정함
 
@@ -24,3 +31,7 @@
 | 2026-10-09 | 휴대폰 폭 사이드바 | 지금처럼 위로 쌓음 | [design/layout.md](design/layout.md) |
 | 2026-10-09 | 대시보드 내용 | 추후 기획. 그때까지 준비 중 | [features/dashboard.md](features/dashboard.md) |
 | 2026-10-09 | **큰 방향: 혼자 vs 여러 사람** | **혼자 쓰는 장부 유지** (로그인·배포 없음) | [decisions/0002](decisions/0002-sidebar-menu.md) |
+| 2026-10-09 | 회비 관리 첫 버전 범위 | 회원 명단 + 납부 현황표 | [features/club-dues.md](features/club-dues.md) |
+| 2026-10-09 | 회비 주기 | 매달 | [features/club-dues.md](features/club-dues.md) |
+| 2026-10-09 | 회비 금액 | 회원 구분별로 다름 | [features/club-dues.md](features/club-dues.md) |
+| 2026-10-09 | 회원 규모·기존 기록 | 20명 이하, 기록 없음 | [features/club-dues.md](features/club-dues.md) |

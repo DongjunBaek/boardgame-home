@@ -27,7 +27,7 @@
 | `/` | 대시보드 | `PlaceholderPage` | 준비 중 (추후 기획) |
 | `/games` | 내 보드게임 목록 | `GamesPage` | 완료 (v1 표 화면) |
 | (없음) | 스토어 | 사이드바에서 펼침 (`StoreSidebar`) | 완료 |
-| `/club/dues` | 동아리 회비 관리 | `PlaceholderPage` | 준비 중 |
+| `/club/dues` | 동아리 회비 관리 | `PlaceholderPage` | 기획 중 |
 | `/board` | 게시판 | `PlaceholderPage` | 준비 중 |
 | `/admin` | 관리자 메뉴 | `PlaceholderPage` | 준비 중 |
 | 그 밖 | | `/`로 보낸다 | |
