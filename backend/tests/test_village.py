@@ -14,7 +14,7 @@ def test_first_get_creates_default_state(isolated_data_dir):
     state = client.get("/api/village").json()
     assert state["coins"] == 0 and state["crystals"] == 0 and state["crop_level"] == 1
     assert state["player"] is None and state["skins"] == {"player": "default", "buildings": {}}
-    assert state["owned_skins"] == []
+    assert state["owned_skins"] == [] and state["placed"] == []
     saved = json.loads((isolated_data_dir / village.VILLAGE_FILE).read_text(encoding="utf-8"))
     # 파일에는 상태만, 화면에는 밭 계산·다음 연구·뽑기 정보·서버 시각을 더해 보낸다
     assert saved == {k: v for k, v in state.items() if k not in ("farm", "lab", "shop", "wardrobe", "server_time")}
@@ -317,4 +317,48 @@ def test_skin_api(isolated_data_dir, monkeypatch):
     assert body["village"]["crystals"] == 2 and body["village"]["shop"]["skins_left"] == 5
     worn = client.put("/api/village/skins", json={"target": "player", "skin": "brown"}).json()
     assert worn["skins"]["player"] == "brown"
+
+
+# ---------- 꾸미기 ----------
+
+
+def decor(*placed):
+    return village.DecorIn(placed=[village.PlacedIn(**p) for p in placed])
+
+
+def test_decorate_checks_owned_counts_bounds_and_uids():
+    s = state_at(T0)
+    s["items"] = [{"id": "rug-blue", "count": 2}, {"id": "lamp-pink", "count": 1}]
+    ok = village.decorate(s, decor({"uid": "a", "item": "rug-blue", "x": 3, "y": 4}, {"uid": "b", "item": "rug-blue", "x": 3, "y": 4},
+                                   {"uid": "c", "item": "lamp-pink", "x": 12, "y": 0}))
+    assert [p["uid"] for p in ok["placed"]] == ["a", "b", "c"]  # 같은 칸에 겹쳐 놓아도 된다
+    bad = [
+        (decor(*[{"uid": str(i), "item": "lamp-pink", "x": 2, "y": 2} for i in range(2)]), "가진 것보다"),
+        (decor({"uid": "a", "item": "bed-green", "x": 2, "y": 2}), "가진 것보다"),
+        (decor({"uid": "a", "item": "rug-blue", "x": 0, "y": 2}), "방 밖"),
+        (decor({"uid": "a", "item": "rug-blue", "x": 2, "y": 8}), "방 밖"),
+        (decor({"uid": "a", "item": "sofa", "x": 2, "y": 2}), "모르는 가구"),
+        (decor({"uid": "a", "item": "rug-blue", "x": 2, "y": 2}, {"uid": "a", "item": "rug-blue", "x": 3, "y": 2}), "같은 uid"),
+    ]
+    for data, msg in bad:
+        try:
+            village.decorate(s, data)
+        except ValueError as e:
+            assert msg in str(e), str(e)
+        else:
+            raise AssertionError(msg)
+    assert village.decorate(ok, decor())["placed"] == []
+
+
+def test_decor_api(isolated_data_dir):
+    client.get("/api/village")
+    path = isolated_data_dir / village.VILLAGE_FILE
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    path.write_text(json.dumps({**saved, "items": [{"id": "clock-cat", "count": 1}]}), encoding="utf-8")
+    body = {"placed": [{"uid": "x1", "item": "clock-cat", "x": 6, "y": 0}]}
+    assert client.put("/api/village/decor", json=body).json()["placed"] == body["placed"]
+    assert client.get("/api/village").json()["placed"] == body["placed"]
+    two = {"placed": body["placed"] + [{"uid": "x2", "item": "clock-cat", "x": 7, "y": 0}]}
+    res = client.put("/api/village/decor", json=two)
+    assert res.status_code == 422 and "가진 것보다" in res.json()["detail"]
 

@@ -1,5 +1,6 @@
 // 마을 캔버스(PixiJS). 지도·캐릭터·걷기·카메라만 맡는다. 패널은 React(VillagePage)가 그린다.
 import { Application, Assets, Container, Graphics, Rectangle, Sprite, Texture, TextureStyle, type Ticker } from 'pixi.js'
+import { drawOrder, type Placed } from './decor'
 import { findPath, moveFeet, nearestOpen } from './path'
 import {
   collisionGrid,
@@ -42,6 +43,10 @@ export type VillageScene = {
   setPlayerSheet: (url: string) => Promise<void>
   /** 건물(kind) 그림을 바꾼다. 이 지도에 그 건물이 없으면 아무것도 하지 않는다 */
   setBuildingImage: (kind: string, url: string) => Promise<void>
+  /** 놓은 가구를 그린다. imageOf(item) = 그림 주소 */
+  setDecor: (placed: readonly Placed[], imageOf: (item: string) => string) => Promise<void>
+  /** 꾸미기 모드: 켜면 걷기 대신 누른 칸(과 그 자리에 놓인 가구 uid)을 알려 준다. ghost = 들고 있는 가구 그림 */
+  setEditor: (onTap: ((tile: Tile, uid: string | null) => void) | null, ghost?: string | null) => void
   player: () => PlayerSpot
   destroy: () => void
 }
@@ -142,6 +147,17 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
   const world = new Container()
   app.stage.addChild(world)
 
+  /** 놓은 가구 (캐릭터 바로 아래 층). uid → 스프라이트 */
+  const decor = new Container({ label: 'decor' })
+  const decorSprites = new Map<string, Sprite>()
+  /** 꾸미기 모드: 칸 표시와 들고 있는 가구 */
+  const cursor = new Graphics()
+  const ghost = new Sprite()
+  ghost.alpha = 0.6
+  let editTap: ((tile: Tile, uid: string | null) => void) | null = null
+  /** setDecor가 겹쳐 불려도 마지막 것만 그리게 */
+  let decorVersion = 0
+
   /** 건물 그림 (kind → 스프라이트). 스킨을 입힐 때 그림만 바꾼다 */
   const buildingSprites = new Map<string, Sprite>()
   /** 책장 그림이 놓인 자리 (책 등을 그 위에 그린다) */
@@ -187,7 +203,8 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
       world.addChild(box)
     }
   }
-  world.addChild(actors, front)
+  world.addChild(decor, actors, front, ghost, cursor)
+  cursor.visible = ghost.visible = false
 
   // 캐릭터: 시트를 바꾸면(스킨) 같은 칸 배치로 다시 자른다
   const frames: Record<Facing, Texture[]> = { down: [], up: [], left: [], right: [] }
@@ -260,7 +277,30 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
   }
   app.stage.eventMode = 'static'
   app.stage.hitArea = app.screen
+  /** 가구 그림을 칸에 맞춰 둔다: 왼쪽 아래가 (x, y) 칸에 닿고, 가로는 차지하는 칸 안에서 가운데 */
+  function fitToTile(sprite: Sprite, x: number, y: number) {
+    const w = sprite.texture.width
+    sprite.position.set(x * T + Math.floor((Math.ceil(w / T) * T - w) / 2), (y + 1) * T - sprite.texture.height)
+  }
+
+  app.stage.on('pointermove', (e) => {
+    if (!editTap) return
+    const p = toWorld(e.global.x, e.global.y)
+    const tx = Math.floor(p.x / T)
+    const ty = Math.floor(p.y / T)
+    cursor.clear().rect(tx * T + 0.5, ty * T + 0.5, T - 1, T - 1).stroke({ width: 1, color: 0xf3f2c0 })
+    cursor.visible = true
+    if (ghost.visible) fitToTile(ghost, tx, ty)
+  })
+
   app.stage.on('pointertap', (e) => {
+    if (editTap) {
+      const p = toWorld(e.global.x, e.global.y)
+      // 위에 그려진 가구부터 본다
+      const hit = [...decorSprites.entries()].reverse().find(([, s]) => s.getBounds().containsPoint(e.global.x, e.global.y))
+      editTap({ x: Math.floor(p.x / T), y: Math.floor(p.y / T) }, hit ? hit[0] : null)
+      return
+    }
     if (paused) return
     const p = toWorld(e.global.x, e.global.y)
     const spot = spotAt(places, p.x, p.y)
@@ -374,6 +414,36 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
     async setBuildingImage(kind, url) {
       const sprite = buildingSprites.get(kind)
       if (sprite) sprite.texture = await Assets.load<Texture>(new URL(url, window.location.href).href)
+    },
+    async setDecor(placed, imageOf) {
+      const version = ++decorVersion
+      const order = drawOrder(placed)
+      const urls = [...new Set(order.map((p) => new URL(imageOf(p.item), window.location.href).href))]
+      const tex = urls.length ? ((await Assets.load(urls)) as Record<string, Texture>) : {}
+      if (version !== decorVersion) return
+      decor.removeChildren().forEach((c) => c.destroy())
+      decorSprites.clear()
+      for (const p of order) {
+        const sprite = new Sprite(tex[new URL(imageOf(p.item), window.location.href).href])
+        fitToTile(sprite, p.x, p.y)
+        decor.addChild(sprite)
+        decorSprites.set(p.uid, sprite)
+      }
+    },
+    setEditor(onTap, ghostUrl) {
+      editTap = onTap
+      paused = onTap !== null
+      held.length = 0
+      path = []
+      cursor.visible = false
+      ghost.visible = false
+      if (onTap && ghostUrl) {
+        void Assets.load<Texture>(new URL(ghostUrl, window.location.href).href).then((t) => {
+          if (editTap !== onTap) return
+          ghost.texture = t
+          ghost.visible = true
+        })
+      }
     },
     setBooks(colors) {
       books.clear()

@@ -1,4 +1,4 @@
-import { ArrowLeft, X } from 'lucide-react'
+import { ArrowLeft, Paintbrush, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import '../village-fonts.css'
 import {
@@ -7,6 +7,7 @@ import {
   gachaVillage,
   harvestVillage,
   researchVillage,
+  saveDecor,
   saveVillagePlayer,
   saveVillagePlayerOnLeave,
   skinGachaVillage,
@@ -15,8 +16,10 @@ import {
 import { formatMinutes, formatPlayers, formatPrice } from '../lib/format'
 import type { Game } from '../lib/types'
 import { shelfOrder, spineColor } from '../lib/village/books'
+import { inRoom, newUid, remaining, type Placed } from '../lib/village/decor'
 import { clockOffset, farmNow, formatLeft, growthStage, type FarmNow } from '../lib/village/farm'
 import { createVillageScene, type PlayerSpot, type VillageScene } from '../lib/village/scene'
+import type { Tile } from '../lib/village/tiled'
 import {
   BUILDING_NAMES,
   buildingUrl,
@@ -62,6 +65,10 @@ export default function VillagePage() {
   // 책장: 집에 처음 들어갈 때 게임 목록을 불러온다
   const [games, setGames] = useState<Game[] | null>(null)
   const [gamesError, setGamesError] = useState<string | null>(null)
+  // 꾸미기: 저장 전 배치(null = 꾸미기 아님)와 들고 있는 가구 (uid가 있으면 옮기는 중)
+  const [draft, setDraft] = useState<Placed[] | null>(null)
+  const [holding, setHolding] = useState<{ item: string; uid?: string } | null>(null)
+  const [decorNote, setDecorNote] = useState<string | null>(null)
 
   const apply = useCallback((s: VillageState) => {
     setState(s)
@@ -99,17 +106,47 @@ export default function VillagePage() {
   // 입은 스킨 (바뀔 때만 그림을 다시 불러온다)
   const playerSkin = state?.skins.player ?? 'default'
   const roofs = state ? (['house', 'shop', 'lab'] as const).map((k) => roofOf(state, k)).join(',') : 'wood,rose,teal'
-  // 캔버스가 늦게 만들어져도 지금 작물·책·스킨으로 시작하게 기억해 둔다
-  const paintRef = useRef({ level, stage, bookColors, playerSkin, roofs })
+  // 놓은 가구는 집 안 좌표라서 집 안에서만 그린다
+  const placed = useMemo(() => (inHouse ? (draft ?? state?.placed ?? []) : []), [inHouse, draft, state?.placed])
+  // 캔버스가 늦게 만들어져도 지금 작물·책·스킨·가구로 시작하게 기억해 둔다
+  const paintRef = useRef({ level, stage, bookColors, playerSkin, roofs, placed })
   useEffect(() => {
-    paintRef.current = { level, stage, bookColors, playerSkin, roofs }
+    paintRef.current = { level, stage, bookColors, playerSkin, roofs, placed }
     sceneRef.current?.setCrop(level, stage)
     sceneRef.current?.setBooks(bookColors)
-  }, [level, stage, bookColors, playerSkin, roofs])
+  }, [level, stage, bookColors, playerSkin, roofs, placed])
   useEffect(() => {
     const scene = sceneRef.current
     if (scene) void paintSkins(scene, playerSkin, roofs)
   }, [playerSkin, roofs])
+  useEffect(() => {
+    void sceneRef.current?.setDecor(placed, itemUrl)
+  }, [placed])
+
+  // 꾸미기 모드: 칸을 누르면 들고 있는 가구를 놓고, 빈손이면 그 자리 가구를 집어 든다
+  const onDecorTap = useCallback(
+    (tile: Tile, uid: string | null) => {
+      if (!draft || !state) return
+      if (holding) {
+        if (!inRoom(tile)) return setDecorNote('방 안에만 놓을 수 있습니다')
+        const next = [...draft, { uid: holding.uid ?? newUid(holding.item, draft), item: holding.item, x: tile.x, y: tile.y }]
+        setDraft(next)
+        setDecorNote(null)
+        // 같은 가구가 더 남았으면 계속 들고 있는다
+        setHolding((remaining(state.items, next).get(holding.item) ?? 0) > 0 ? { item: holding.item } : null)
+      } else if (uid) {
+        const picked = draft.find((p) => p.uid === uid)
+        if (!picked) return
+        setDraft(draft.filter((p) => p.uid !== uid))
+        setHolding({ item: picked.item, uid })
+        setDecorNote(null)
+      }
+    },
+    [draft, holding, state],
+  )
+  useEffect(() => {
+    sceneRef.current?.setEditor(draft ? onDecorTap : null, holding ? itemUrl(holding.item) : null)
+  }, [draft, holding, onDecorTap])
 
   useEffect(() => {
     const host = hostRef.current
@@ -143,6 +180,7 @@ export default function VillagePage() {
         s.setCrop(paintRef.current.level, paintRef.current.stage)
         s.setBooks(paintRef.current.bookColors)
         void paintSkins(s, paintRef.current.playerSkin, paintRef.current.roofs)
+        void s.setDecor(paintRef.current.placed, itemUrl)
       })
       .catch((e: Error) => !cancelled && setError(e.message))
 
@@ -196,6 +234,44 @@ export default function VillagePage() {
                 {state.crystals.toLocaleString('ko-KR')}
               </span>
             </div>
+          )}
+          {inHouse && state && !open && !draft && (
+            <div className="village-tools">
+              <button type="button" className="village-button" onClick={() => setDraft(state.placed)}>
+                <Paintbrush size={14} aria-hidden="true" /> 꾸미기
+              </button>
+            </div>
+          )}
+          {draft && state && (
+            <DecorPanel
+              state={state}
+              draft={draft}
+              holding={holding}
+              note={decorNote}
+              onHold={(item) => {
+                setHolding(item ? { item } : null)
+                setDecorNote(null)
+              }}
+              onClear={() => {
+                setDraft([])
+                setHolding(null)
+              }}
+              onCancel={() => {
+                setDraft(null)
+                setHolding(null)
+                setDecorNote(null)
+              }}
+              onSave={async () => {
+                try {
+                  apply(await saveDecor(draft))
+                  setDraft(null)
+                  setHolding(null)
+                  setDecorNote(null)
+                } catch (e) {
+                  setDecorNote(`저장하지 못했습니다: ${(e as Error).message}`)
+                }
+              }}
+            />
           )}
           {open === 'bookshelf' ? (
             <BookshelfPanel books={books} colors={bookColors} error={gamesError} onClose={close} />
@@ -592,6 +668,84 @@ function WardrobePanel({ state, onClose, onChanged }: WardrobeProps) {
         </div>
       ))}
       {error && <p className="village-note muted">{error}</p>}
+    </section>
+  )
+}
+
+type DecorProps = {
+  state: VillageState
+  draft: Placed[]
+  holding: { item: string; uid?: string } | null
+  note: string | null
+  onHold: (item: string | null) => void
+  onClear: () => void
+  onCancel: () => void
+  onSave: () => Promise<void>
+}
+
+/** 꾸미기 창: 가진 가구를 골라 방의 칸을 누르면 놓인다. 저장해야 남는다 */
+function DecorPanel({ state, draft, holding, note, onHold, onClear, onCancel, onSave }: DecorProps) {
+  const [busy, setBusy] = useState(false)
+  const left = remaining(state.items, draft)
+  const names = state.shop.names
+  const moving = holding?.uid !== undefined
+
+  return (
+    <section className="village-panel" role="dialog" aria-label="꾸미기">
+      <header>
+        <h2>꾸미기</h2>
+      </header>
+      <p className="village-soon">
+        {holding
+          ? `${names[holding.item]}${moving ? ' 옮기는 중' : ''} · 놓을 칸을 누르세요`
+          : '가구를 고르고 방의 칸을 누르면 놓입니다. 놓인 가구를 누르면 다시 집어 듭니다'}
+      </p>
+      {state.items.length ? (
+        <ul className="village-items">
+          {state.items.map((it) => {
+            const n = left.get(it.id) ?? 0
+            const picked = holding?.item === it.id && !moving
+            return (
+              <li key={it.id}>
+                <button
+                  type="button"
+                  className="village-pick"
+                  aria-pressed={picked}
+                  disabled={n === 0 || moving}
+                  title={names[it.id]}
+                  onClick={() => onHold(picked ? null : it.id)}
+                >
+                  <img src={itemUrl(it.id)} alt={names[it.id]} />
+                  <span>×{n}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <p className="village-soon">아직 가구가 없습니다. 상점 뽑기로 모아 보세요</p>
+      )}
+      {note && <p className="village-note muted">{note}</p>}
+      <div className="village-actions">
+        <button
+          type="button"
+          className="village-button"
+          disabled={busy || moving}
+          onClick={async () => {
+            setBusy(true)
+            await onSave()
+            setBusy(false)
+          }}
+        >
+          저장
+        </button>
+        <button type="button" className="village-button quiet" disabled={busy} onClick={onCancel}>
+          취소
+        </button>
+        <button type="button" className="village-button quiet" disabled={busy || draft.length === 0} onClick={onClear}>
+          모두 치우기
+        </button>
+      </div>
     </section>
   )
 }

@@ -87,6 +87,31 @@ class SkinIn(BaseModel):
     skin: str
 
 
+# 꾸미기: 집 안에 놓을 수 있는 칸 (frontend/public/village/maps/house.tmj의 방. 위 벽 줄 0은 그림·시계용)
+HOUSE_X = (1, 12)
+HOUSE_Y = (0, 7)
+MAX_PLACED = 200
+
+
+class PlacedIn(BaseModel):
+    """놓은 가구 하나. (x, y)는 그림의 왼쪽 아래가 닿는 칸"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    uid: Annotated[str, Field(min_length=1, max_length=60)]
+    item: str
+    x: int
+    y: int
+
+
+class DecorIn(BaseModel):
+    """집 안에 놓은 가구 전체. 보낸 목록으로 통째로 바꾼다"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    placed: Annotated[list[PlacedIn], Field(max_length=MAX_PLACED)]
+
+
 class GachaError(Exception):
     """뽑을 수 없는 경우 (코인 모자람). 화면에 그대로 보여 줄 문장을 담는다."""
 
@@ -121,6 +146,8 @@ def default_state(now: datetime) -> dict:
         "skins": {"player": "default", "buildings": {}},
         # 뽑기로 얻은 스킨 ("player:brown", "roof:slate"). 처음부터 가진 것은 넣지 않는다
         "owned_skins": [],
+        # 집 안에 놓은 가구 [{uid, item, x, y}]
+        "placed": [],
         # 지도 위 자리. None이면 지도의 시작점(spawn)에 선다
         "player": None,
     }
@@ -302,5 +329,26 @@ def wear(state: dict, data: SkinIn) -> dict:
         if data.skin not in owned["roof"]:
             raise ValueError(f"가지지 않은 지붕입니다: {data.skin}")
         new["skins"]["buildings"] = {**new["skins"].get("buildings", {}), data.target: data.skin}
+    return new
+
+
+def decorate(state: dict, data: DecorIn) -> dict:
+    """집 안 가구 배치를 통째로 바꾼다. 가진 개수보다 많거나, 방 밖이거나, 모르는 가구면 ValueError."""
+    owned = {it["id"]: it["count"] for it in state["items"]}
+    used: dict[str, int] = {}
+    seen: set[str] = set()
+    for p in data.placed:
+        if p.item not in FURNITURE:
+            raise ValueError(f"모르는 가구입니다: {p.item}")
+        if not (HOUSE_X[0] <= p.x <= HOUSE_X[1] and HOUSE_Y[0] <= p.y <= HOUSE_Y[1]):
+            raise ValueError(f"방 밖에는 놓을 수 없습니다: {FURNITURE[p.item]} ({p.x}, {p.y})")
+        if p.uid in seen:
+            raise ValueError(f"같은 uid가 두 번 있습니다: {p.uid}")
+        seen.add(p.uid)
+        used[p.item] = used.get(p.item, 0) + 1
+        if used[p.item] > owned.get(p.item, 0):
+            raise ValueError(f"가진 것보다 많이 놓았습니다: {FURNITURE[p.item]} (가진 개수 {owned.get(p.item, 0)})")
+    new = copy.deepcopy(state)
+    new["placed"] = [p.model_dump() for p in data.placed]
     return new
 

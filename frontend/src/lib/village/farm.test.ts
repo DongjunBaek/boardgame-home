@@ -15,6 +15,7 @@ const state = (last: string, serverTime: string, rate = 10): VillageState => ({
   lab: null,
   shop: { cost: 100, names: {}, skin_cost: 3, skins_left: 6 },
   owned_skins: [],
+  placed: [],
   wardrobe: { players: {}, roofs: {}, default_roofs: { house: 'wood', shop: 'rose', lab: 'teal' }, owned: { player: [], roof: [] } },
   server_time: serverTime,
 })

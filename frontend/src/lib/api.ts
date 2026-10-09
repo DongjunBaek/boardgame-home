@@ -1,6 +1,7 @@
 // 서버 API 호출. 개발 중에는 Vite가 /api를 FastAPI로 넘겨준다 (vite.config.ts).
 import type { Club, Member, MemberInput, Payment, PaymentInput, Tier, TierInput } from './club'
 import type { EntryInput, LedgerEntry } from './ledger'
+import type { Placed } from './village/decor'
 import type { PlayerSpot } from './village/scene'
 import type { BuildingKind, GachaResult, MapName, VillageState } from './village/state'
 import type { ExcelPreview, ExcelReport, Game, GameInput, Store, StoreInput } from './types'
@@ -118,6 +119,9 @@ export const skinGachaVillage = () => request<{ result: GachaResult; village: Vi
 /** 가진 스킨 입히기. target: player(고양이) 또는 house·shop·lab(지붕) */
 export const wearSkin = (target: 'player' | BuildingKind, skin: string) =>
   request<VillageState>('PUT', '/village/skins', { target, skin })
+
+/** 집 안 가구 배치 저장 (통째로 바꾼다). 가진 것보다 많거나 방 밖이면 이유를 담은 오류 */
+export const saveDecor = (placed: Placed[]) => request<VillageState>('PUT', '/village/decor', { placed })
 
 /** 화면을 떠날 때: 페이지가 닫혀도 요청이 끝까지 가도록 keepalive로 보낸다 */
 export function saveVillagePlayerOnLeave(map: MapName, spot: PlayerSpot) {

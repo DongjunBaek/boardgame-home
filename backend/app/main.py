@@ -466,6 +466,20 @@ def wear_village_skin(data: village.SkinIn) -> dict:
     return village.view(state, _now())
 
 
+@app.put("/api/village/decor")
+def decorate_village(data: village.DecorIn) -> dict:
+    """집 안에 놓은 가구 배치를 저장한다 (통째로 바꾼다)."""
+    with collection_lock():
+        before = _village()
+        try:
+            state = village.decorate(before, data)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        if state != before:
+            save_json(village.VILLAGE_FILE, state)
+    return village.view(state, _now())
+
+
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 def api_not_found(path: str) -> JSONResponse:
     # 없는 API 주소가 화면(index.html)으로 빠지지 않게 막는다

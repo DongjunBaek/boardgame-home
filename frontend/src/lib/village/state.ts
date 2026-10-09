@@ -1,4 +1,5 @@
 // 서버가 저장하는 마을 상태 (backend/app/village.py와 같은 모양)
+import type { Placed } from './decor'
 import type { PlayerSpot } from './scene'
 
 export type VillageState = {
@@ -12,6 +13,8 @@ export type VillageState = {
   /** 입은 스킨: 캐릭터는 고양이 id, 건물(house·shop·lab)은 지붕 id. 건물이 없으면 처음 지붕 */
   skins: { player: string; buildings: Partial<Record<BuildingKind, string>> }
   owned_skins: string[]
+  /** 집 안에 놓은 가구 */
+  placed: Placed[]
   player: (PlayerSpot & { map: MapName }) | null
   /** 서버가 지금 시각 기준으로 계산해 붙인다 (파일에는 없다) */
   farm: { rate_per_hour: number; cap_hours: number; pending: number; full_at: string }
