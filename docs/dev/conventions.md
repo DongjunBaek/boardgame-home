@@ -1,10 +1,28 @@
 # 작업 규칙
 
 ## git
-- 커밋은 로컬에만 한다. push는 요청할 때만 한다.
-- 커밋 메시지는 `종류: 한국어 설명` 형식이다. 예: `feat: 스토어 바로가기 사이드바`
+
+### 언제
+- 커밋과 푸시는 사용자가 말할 때만 한다. 기능 단계가 끝나면 커밋할지 묻는다.
+- 푸시는 `main`에 바로 한다 (`git push origin main`). 강제 푸시(`--force`)는 하지 않는다.
+  - 이 컴퓨터의 `.claude/settings.local.json`에 Claude의 `git push` 허용 규칙이 있다 (2026-10-10). git에는 올라가지 않는다.
+
+### 커밋 전에
+- 모두 통과시킨다: 서버 테스트, 화면 테스트, 린트, 빌드 ([testing.md](testing.md)의 명령)
+- 화면을 바꿨으면 실제 화면도 본다 ([testing.md](testing.md) "화면 확인").
+
+### 메시지
+- 첫 줄은 `종류: 한국어 설명` 형식이다. 예: `feat: 스토어 바로가기 사이드바`
   - 종류: `feat`(기능), `fix`(고침), `refactor`(동작 같음), `docs`(문서), `test`, `chore`
+- 본문은 빈 줄 하나 뒤에 무엇을 바꿨는지 2~4줄로 적는다 (`- `로 시작).
+- Claude가 만든 커밋은 맨 끝에 `Co-Authored-By: Claude ... <noreply@anthropic.com>` 줄을 둔다.
+
+### 무엇을
 - 코드 변경과 그 문서 변경([docs/README.md](../README.md) 규칙)은 함께 커밋한다.
+- 커밋하지 않는다 (`.gitignore`에 있다)
+  - `data/`, `data-sandbox/`: 실데이터와 시험용 데이터
+  - `assets-src/`: 마을 그림 원본 팩 (라이선스상 팩째로 나눠 주면 안 된다)
+  - `.claude/settings.local.json`: Claude Code 개인 설정
 
 ### 저장소를 공개로 바꾸기 전에: 마을 그림 빼기
 
