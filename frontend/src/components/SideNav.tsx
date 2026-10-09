@@ -58,6 +58,7 @@ export default function SideNav({ stores }: { stores: ComponentProps<typeof Stor
         )}
 
         <Item item={NAV.dues} />
+        <Item item={NAV.ledger} />
         <Item item={NAV.board} />
       </nav>
 

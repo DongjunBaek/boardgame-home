@@ -10,7 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from backend.app import club, excel
+from backend.app import club, excel, ledger
 from backend.app.config import FRONTEND_DIST, data_dir
 from backend.app.games import GameConflictError, GameIn, apply_patch, describe_error, new_game
 from backend.app.store import DataFileCorruptedError, collection_lock, load_collection, load_json, save_collection, save_json
@@ -224,6 +224,7 @@ def get_club() -> dict:
             "tiers": _club_tiers(),
             "members": _club_list(club.MEMBERS_FILE),
             "payments": _club_list(club.PAYMENTS_FILE),
+            "ledger": _club_list(ledger.LEDGER_FILE),
         }
 
 
@@ -329,6 +330,42 @@ def delete_payment(member_id: str, month: str) -> Response:
         except KeyError as e:
             raise HTTPException(404, f"기록이 없습니다: {month}") from e
         save_json(club.PAYMENTS_FILE, payments)
+    return Response(status_code=204)
+
+
+# ---------- 회계록 ----------
+
+
+@app.post("/api/club/ledger", status_code=201)
+def create_entry(data: ledger.EntryIn) -> dict:
+    with collection_lock():
+        try:
+            entries, entry = ledger.add_entry(_club_list(ledger.LEDGER_FILE), data)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        save_json(ledger.LEDGER_FILE, entries)
+    return entry
+
+
+@app.patch("/api/club/ledger/{entry_id}")
+def update_entry(entry_id: str, patch: ledger.EntryIn) -> dict:
+    with collection_lock():
+        try:
+            entries = ledger.apply_entry_patch(_club_list(ledger.LEDGER_FILE), entry_id, patch)
+        except KeyError as e:
+            raise HTTPException(404, f"없는 기록입니다: {entry_id}") from e
+        save_json(ledger.LEDGER_FILE, entries)
+    return next(e for e in entries if e["id"] == entry_id)
+
+
+@app.delete("/api/club/ledger/{entry_id}", status_code=204)
+def delete_entry(entry_id: str) -> Response:
+    with collection_lock():
+        entries = _club_list(ledger.LEDGER_FILE)
+        rest = [e for e in entries if e["id"] != entry_id]
+        if len(rest) == len(entries):
+            raise HTTPException(404, f"없는 기록입니다: {entry_id}")
+        save_json(ledger.LEDGER_FILE, rest)
     return Response(status_code=204)
 
 

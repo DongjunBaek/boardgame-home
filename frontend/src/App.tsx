@@ -13,6 +13,7 @@ import { NAV, PLACEHOLDER_PAGES } from './lib/nav'
 import type { ExcelReport, Game, GameInput, Store } from './lib/types'
 import ClubDuesPage from './pages/ClubDuesPage'
 import GamesPage from './pages/GamesPage'
+import LedgerPage from './pages/LedgerPage'
 import PlaceholderPage from './pages/PlaceholderPage'
 
 type Load = { kind: 'loading' } | { kind: 'ok' } | { kind: 'error'; message: string }
@@ -158,6 +159,10 @@ export default function App() {
           <Route
             path={NAV.dues.path}
             element={<ClubDuesPage notice={notice} notify={notify} onCloseNotice={() => setNotice(null)} />}
+          />
+          <Route
+            path={NAV.ledger.path}
+            element={<LedgerPage notice={notice} notify={notify} onCloseNotice={() => setNotice(null)} />}
           />
           {PLACEHOLDER_PAGES.map((item) => (
             <Route key={item.path} path={item.path} element={<PlaceholderPage item={item} />} />

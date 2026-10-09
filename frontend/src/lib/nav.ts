@@ -1,4 +1,4 @@
-import { Library, LayoutDashboard, MessageSquare, Shield, Wallet, type LucideIcon } from 'lucide-react'
+import { BookOpen, Library, LayoutDashboard, MessageSquare, Shield, Wallet, type LucideIcon } from 'lucide-react'
 
 export type NavItem = { path: string; label: string; icon: LucideIcon }
 
@@ -7,6 +7,7 @@ export const NAV = {
   dashboard: { path: '/', label: '대시보드', icon: LayoutDashboard },
   games: { path: '/games', label: '내 보드게임 목록', icon: Library },
   dues: { path: '/club/dues', label: '동아리 회비 관리', icon: Wallet },
+  ledger: { path: '/club/ledger', label: '회계록', icon: BookOpen },
   board: { path: '/board', label: '게시판', icon: MessageSquare },
   admin: { path: '/admin', label: '관리자 메뉴', icon: Shield },
 } satisfies Record<string, NavItem>

@@ -9,7 +9,7 @@
 |---|---|---|
 | [plan/](plan/) | 단계별 계획과 진행 상태 | [PLAN.md](plan/PLAN.md) (v1, 완료) · [v2-screen-renewal.md](plan/v2-screen-renewal.md) (화면 개편, 진행 중) |
 | [design/](design/) | 화면 디자인 규칙과 앱 틀 | [ui-rules.md](design/ui-rules.md) · [layout.md](design/layout.md) |
-| [features/](features/) | 메뉴 하나에 문서 하나: 상태·할 일·열린 질문 | [dashboard](features/dashboard.md) · [games](features/games.md) · [stores](features/stores.md) · [club-dues](features/club-dues.md) · [board](features/board.md) · [admin](features/admin.md) |
+| [features/](features/) | 메뉴 하나에 문서 하나: 상태·할 일·열린 질문 | [dashboard](features/dashboard.md) · [games](features/games.md) · [stores](features/stores.md) · [club-dues](features/club-dues.md) · [ledger](features/ledger.md) · [board](features/board.md) · [admin](features/admin.md) |
 | [decisions/](decisions/) | 되돌리기 어려운 결정과 그 이유 | [0001 react-router](decisions/0001-react-router.md) · [0002 사이드바 메뉴](decisions/0002-sidebar-menu.md) |
 | [dev/](dev/) | 설치·실행·테스트·작업 규칙 | [setup.md](dev/setup.md) · [testing.md](dev/testing.md) · [conventions.md](dev/conventions.md) |
 | [questions.md](questions.md) | 아직 정하지 않아 사용자에게 물어볼 것 | |

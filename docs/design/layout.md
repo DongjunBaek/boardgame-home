@@ -12,6 +12,7 @@
 │ 스토어       ›   │ (목록 화면만) 아래 입력창 .dock/.composer    │
 │  └ 바로가기 목록 │                                              │
 │ 동아리 회비 관리 │                                              │
+│ 회계록           │                                              │
 │ 게시판           │                                              │
 │ ───────────      │                                              │
 │ 관리자 메뉴      │                                              │
@@ -28,6 +29,7 @@
 | `/games` | 내 보드게임 목록 | `GamesPage` | 완료 (v1 표 화면) |
 | (없음) | 스토어 | 사이드바에서 펼침 (`StoreSidebar`) | 완료 |
 | `/club/dues` | 동아리 회비 관리 | `ClubDuesPage` | v1 완료 (현황표·회원) |
+| `/club/ledger` | 회계록 | `LedgerPage` | v1 완료 (입출금·잔액, 회비 자동 입금) |
 | `/board` | 게시판 | `PlaceholderPage` | 준비 중 |
 | `/admin` | 관리자 메뉴 | `PlaceholderPage` | 준비 중 |
 | 그 밖 | | `/`로 보낸다 | |

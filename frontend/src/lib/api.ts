@@ -1,5 +1,6 @@
 // 서버 API 호출. 개발 중에는 Vite가 /api를 FastAPI로 넘겨준다 (vite.config.ts).
 import type { Club, Member, MemberInput, Payment, PaymentInput, Tier, TierInput } from './club'
+import type { EntryInput, LedgerEntry } from './ledger'
 import type { ExcelPreview, ExcelReport, Game, GameInput, Store, StoreInput } from './types'
 
 export type Health = { status: string; data_dir: string }
@@ -64,7 +65,8 @@ export const applyExcel = (file: Blob, base: string, fetchFn?: typeof fetch) =>
 
 // ---------- 동아리 회비 ----------
 
-export const fetchClub = (fetchFn?: typeof fetch) => getJson<Club>('/club', fetchFn)
+/** 회비 장부 전체 + 회계록 (직접 적은 입출금) */
+export const fetchClub = (fetchFn?: typeof fetch) => getJson<Club & { ledger: LedgerEntry[] }>('/club', fetchFn)
 
 const tierPath = (id: string) => `/club/tiers/${encodeURIComponent(id)}`
 const memberPath = (id: string) => `/club/members/${encodeURIComponent(id)}`
@@ -82,3 +84,11 @@ export const deleteMember = (id: string) => request<void>('DELETE', memberPath(i
 export const putPayment = (memberId: string, month: string, input: PaymentInput) =>
   request<Payment[]>('PUT', paymentPath(memberId, month), input)
 export const deletePayment = (memberId: string, month: string) => request<void>('DELETE', paymentPath(memberId, month))
+
+// ---------- 회계록 ----------
+
+const entryPath = (id: string) => `/club/ledger/${encodeURIComponent(id)}`
+
+export const createEntry = (input: EntryInput) => request<LedgerEntry>('POST', '/club/ledger', input)
+export const updateEntry = (id: string, patch: EntryInput) => request<LedgerEntry>('PATCH', entryPath(id), patch)
+export const deleteEntry = (id: string) => request<void>('DELETE', entryPath(id))

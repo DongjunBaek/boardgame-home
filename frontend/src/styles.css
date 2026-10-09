@@ -1759,6 +1759,58 @@ label.checks {
   font-variant-numeric: tabular-nums;
 }
 
+/* --- 회계록 --- */
+.ledger-row {
+  cursor: pointer;
+}
+
+.ledger-table .col-desc {
+  min-width: 220px;
+  white-space: normal;
+}
+
+.kind-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 8px 1px 6px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 999px;
+}
+
+.kind-chip.in {
+  color: var(--ok);
+  background: var(--ok-bg);
+}
+
+.kind-chip.out {
+  color: var(--bad);
+  background: var(--bad-bg);
+}
+
+.amt-in {
+  color: var(--ok);
+}
+
+.amt-out {
+  color: var(--bad);
+}
+
+.summary-pill b.amt-in {
+  color: var(--ok);
+}
+
+.summary-pill b.amt-out {
+  color: var(--bad);
+}
+
+.row-memo {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 /* 좁은 화면: 사이드바를 위로 올리고 높이를 줄인다 */
 @media (max-width: 760px) {
   .shell {

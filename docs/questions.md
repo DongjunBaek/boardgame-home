@@ -13,6 +13,15 @@
 | 11 | 휴면·탈퇴 회원을 현황표에 보일지 | 그 해에 회원이었으면 흐리게 보임 |
 | 12 | 회원 정렬 | 활동 → 휴면 → 탈퇴, 그 안에서 이름순 |
 
+### 회계록 (2026-10-09) → [features/ledger.md](features/ledger.md)
+
+| # | 질문 | 지금 기본값 |
+|---|---|---|
+| 13 | 메뉴 이름·위치·아이콘 | '회계록', 동아리 회비 관리 바로 아래, 책 아이콘 |
+| 14 | 분류 처음 목록 | 회비 · 모임비 · 간식·식비 · 게임 구매 · 장소 대여 · 기타 |
+| 15 | 표 정렬 | 최신 기록이 위 |
+| 16 | 회비 입금의 날짜 | 회비 기록의 '낸 날' (없으면 그 달 1일). 지난 달 회비를 오늘 날짜로 적었다면 회계록에도 오늘로 나온다 |
+
 ## 정함
 
 | 날짜 | 질문 | 답 | 반영한 곳 |
@@ -35,3 +44,6 @@
 | 2026-10-09 | 회비 주기 | 매달 | [features/club-dues.md](features/club-dues.md) |
 | 2026-10-09 | 회비 금액 | 회원 구분별로 다름 | [features/club-dues.md](features/club-dues.md) |
 | 2026-10-09 | 회원 규모·기존 기록 | 20명 이하, 기록 없음 | [features/club-dues.md](features/club-dues.md) |
+| 2026-10-09 | 회비 납부를 회계록에 보일지 | 자동으로 보여 줌 (낸 날 기준) | [features/ledger.md](features/ledger.md) |
+| 2026-10-09 | 회계록 시작 잔액 | 0원 | [features/ledger.md](features/ledger.md) |
+| 2026-10-09 | 보관 장소 | 한 곳 (합친 잔액) | [features/ledger.md](features/ledger.md) |
