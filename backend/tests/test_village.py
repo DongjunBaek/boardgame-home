@@ -197,9 +197,9 @@ def test_every_furniture_has_a_picture():
 def test_draw_follows_the_table_roughly():
     rng = random.Random(42)
     kinds = Counter(village.draw(rng)["kind"] for _ in range(5000))
-    assert 0.66 < kinds["item"] / 5000 < 0.74
+    assert 0.56 < kinds["item"] / 5000 < 0.64
     assert 0.17 < kinds["coins"] / 5000 < 0.23
-    assert 0.08 < kinds["crystals"] / 5000 < 0.12
+    assert 0.17 < kinds["crystals"] / 5000 < 0.23
     item = next(r for r in (village.draw(rng) for _ in range(50)) if r["kind"] == "item")
     assert item["name"] == village.FURNITURE[item["id"]]
 

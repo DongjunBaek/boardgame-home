@@ -56,13 +56,14 @@ FURNITURE = {
     "rug-blue": "하늘 러그",
 }
 
-# 무엇이 나올지: (무게, 결과). 가구 70 · 코인 20 · 크리스탈 10 (가구 안에서는 모두 같은 확률)
+# 무엇이 나올지: (무게, 결과). 가구 60 · 코인 20 · 크리스탈 20 (가구 안에서는 모두 같은 확률)
+# 2026-10-10 크리스탈을 10% → 20%로 올렸다 (뽑기 한 번에 평균 0.16개 → 0.34개)
 GACHA_TABLE = [
-    (70, {"kind": "item"}),
+    (60, {"kind": "item"}),
     (12, {"kind": "coins", "amount": 50}),
     (8, {"kind": "coins", "amount": 150}),
-    (7, {"kind": "crystals", "amount": 1}),
-    (3, {"kind": "crystals", "amount": 3}),
+    (13, {"kind": "crystals", "amount": 1}),
+    (7, {"kind": "crystals", "amount": 3}),
 ]
 
 
