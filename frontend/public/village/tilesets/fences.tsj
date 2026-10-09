@@ -1,0 +1,15 @@
+{
+  "type": "tileset",
+  "version": "1.10",
+  "tiledversion": "1.11.0",
+  "name": "fences",
+  "tilewidth": 16,
+  "tileheight": 16,
+  "image": "fences.png",
+  "imagewidth": 64,
+  "imageheight": 64,
+  "columns": 4,
+  "tilecount": 16,
+  "margin": 0,
+  "spacing": 0
+}

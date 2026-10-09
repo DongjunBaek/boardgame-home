@@ -1,0 +1,15 @@
+{
+  "type": "tileset",
+  "version": "1.10",
+  "tiledversion": "1.11.0",
+  "name": "crops",
+  "tilewidth": 16,
+  "tileheight": 16,
+  "image": "crops.png",
+  "imagewidth": 96,
+  "imageheight": 32,
+  "columns": 6,
+  "tilecount": 12,
+  "margin": 0,
+  "spacing": 0
+}

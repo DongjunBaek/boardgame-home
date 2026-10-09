@@ -1842,3 +1842,144 @@ label.checks {
     grid-template-columns: 1fr;
   }
 }
+
+/*
+ * 대시보드 마을: 화면 규칙의 예외 (docs/decisions/0003-dashboard-village.md).
+ * 캔버스와 그 위 패널만 픽셀 글꼴(Galmuri)과 그림 팩(Sprout Lands) 팔레트 색을 쓴다.
+ * 게임 화면이라 밝은·어두운 화면에서 같은 색을 쓴다.
+ */
+.village {
+  --v-water: #9bd4c3;
+  --v-paper: #f3e5c2;
+  --v-paper-deep: #e8cfa6;
+  --v-ink: #754c60;
+  --v-ink-soft: #90625d;
+  --v-leaf: #67835c;
+
+  position: relative;
+  flex: 1;
+  min-height: 320px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  background: var(--v-water);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.village-hints {
+  flex-wrap: wrap;
+}
+
+.village-hints .summary-pill {
+  white-space: nowrap;
+}
+
+.village-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.village-canvas canvas {
+  display: block;
+  cursor: pointer;
+}
+
+.village-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  font: 15px/1.4 Galmuri14, 'Pretendard Variable', sans-serif;
+  color: var(--v-ink);
+}
+
+.village-panel {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: min(320px, calc(100% - 32px));
+  padding: 12px 14px 14px;
+  font: 15px/1.5 Galmuri14, 'Pretendard Variable', sans-serif;
+  letter-spacing: 0;
+  color: var(--v-ink);
+  background: var(--v-paper);
+  border: 2px solid var(--v-ink);
+  border-radius: 4px;
+  /* 픽셀 느낌: 번지지 않는 아래 그림자 한 줄 */
+  box-shadow: 0 3px 0 var(--v-ink-soft);
+  animation: village-pop 0.12s ease-out;
+}
+
+.village-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.village-panel h2 {
+  margin: 0;
+  font: 700 24px/1.2 Galmuri11, 'Pretendard Variable', sans-serif;
+}
+
+.village-panel p {
+  margin: 0 0 8px;
+}
+
+.village-stat {
+  display: inline-block;
+  padding: 0 6px;
+  color: var(--v-paper);
+  background: var(--v-leaf);
+  border-radius: 2px;
+}
+
+.village-soon {
+  font: 12px/1.4 Galmuri11, 'Pretendard Variable', sans-serif;
+  color: var(--v-ink-soft);
+}
+
+.village-panel p.village-soon {
+  margin: 4px 0 0;
+}
+
+.village-close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--v-ink);
+  background: var(--v-paper-deep);
+  border: 2px solid var(--v-ink);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.village-close:hover {
+  background: var(--v-paper);
+}
+
+.village-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@keyframes village-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (max-width: 760px) {
+  .village {
+    min-height: 60vh;
+  }
+
+  /* 휴대폰에는 키보드가 없다 */
+  .village-keys {
+    display: none;
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "type": "tileset",
+  "version": "1.10",
+  "tiledversion": "1.11.0",
+  "name": "dirt",
+  "tilewidth": 16,
+  "tileheight": 16,
+  "image": "dirt.png",
+  "imagewidth": 176,
+  "imageheight": 112,
+  "columns": 11,
+  "tilecount": 77,
+  "margin": 0,
+  "spacing": 0
+}

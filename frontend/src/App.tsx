@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate } from 'react-router'
 import AppBar from './components/AppBar'
 import ExcelImportDialog from './components/ExcelImportDialog'
@@ -15,6 +15,9 @@ import ClubDuesPage from './pages/ClubDuesPage'
 import GamesPage from './pages/GamesPage'
 import LedgerPage from './pages/LedgerPage'
 import PlaceholderPage from './pages/PlaceholderPage'
+
+// 마을(PixiJS)은 무거워서 대시보드를 열 때만 불러온다
+const VillagePage = lazy(() => import('./pages/VillagePage'))
 
 type Load = { kind: 'loading' } | { kind: 'ok' } | { kind: 'error'; message: string }
 /** 열린 상세 창: 게임 하나, 새 게임('new'), 또는 닫힘(null) */
@@ -132,6 +135,14 @@ export default function App() {
 
       <main className="main">
         <Routes>
+          <Route
+            path={NAV.dashboard.path}
+            element={
+              <Suspense fallback={null}>
+                <VillagePage />
+              </Suspense>
+            }
+          />
           <Route
             path={NAV.games.path}
             element={

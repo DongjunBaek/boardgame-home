@@ -1,0 +1,58 @@
+{
+  "type": "tileset",
+  "version": "1.10",
+  "tiledversion": "1.11.0",
+  "name": "buildings",
+  "tilewidth": 74,
+  "tileheight": 81,
+  "columns": 0,
+  "tilecount": 3,
+  "margin": 0,
+  "spacing": 0,
+  "grid": {
+    "orientation": "orthogonal",
+    "width": 1,
+    "height": 1
+  },
+  "tiles": [
+    {
+      "id": 0,
+      "image": "../buildings/house.png",
+      "imagewidth": 74,
+      "imageheight": 81,
+      "properties": [
+        {
+          "name": "kind",
+          "type": "string",
+          "value": "house"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "image": "../buildings/shop.png",
+      "imagewidth": 58,
+      "imageheight": 73,
+      "properties": [
+        {
+          "name": "kind",
+          "type": "string",
+          "value": "shop"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "image": "../buildings/lab.png",
+      "imagewidth": 58,
+      "imageheight": 81,
+      "properties": [
+        {
+          "name": "kind",
+          "type": "string",
+          "value": "lab"
+        }
+      ]
+    }
+  ]
+}

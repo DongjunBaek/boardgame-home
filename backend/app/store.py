@@ -1,4 +1,4 @@
-"""JSON 파일 저장소: 보유 게임 목록(data/collection.json)과 스토어 목록(data/stores.json).
+"""JSON 파일 저장소: 보유 게임 목록(data/collection.json), 스토어 목록(data/stores.json), 마을 상태(data/village.json) 등.
 
 - 저장할 때마다 직전 파일을 data/backups/에 복사해 둔다. 최근 BACKUP_KEEP개와,
   최근 DAILY_KEEP일 동안 날마다 첫 백업을 남긴다 (표에서 여러 번 고쳐도 며칠 전 상태로 돌아갈 수 있게).
@@ -69,7 +69,23 @@ def load_json(name: str) -> list[dict] | None:
     return data
 
 
-def save_json(name: str, data: list[dict]) -> Path | None:
+def load_object(name: str) -> dict | None:
+    """data/<name>을 객체(JSON {})로 읽는다. 파일이 없으면 None. 깨져 있거나 객체가 아니면 DataFileCorruptedError."""
+    path = data_dir() / name
+    with _lock:
+        if not path.exists():
+            return None
+        text = path.read_text(encoding="utf-8")
+    try:
+        data = json.loads(text)
+    except ValueError as e:
+        raise DataFileCorruptedError(path, str(e)) from e
+    if not isinstance(data, dict):
+        raise DataFileCorruptedError(path, "객체(JSON {})가 아님")
+    return data
+
+
+def save_json(name: str, data: list[dict] | dict) -> Path | None:
     """data/<name>에 저장한다. 기존 파일이 있었으면 백업하고 그 경로를 돌려준다."""
     path = data_dir() / name
     with _lock:

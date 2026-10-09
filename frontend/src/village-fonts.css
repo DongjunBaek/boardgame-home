@@ -1,0 +1,20 @@
+/* 마을에서만 쓰는 한글 픽셀 글꼴 Galmuri (SIL OFL 1.1, npm galmuri).
+   패키지의 galmuri.css는 모든 굵기·ttf까지 불러와서 쓰는 세 개만 따로 적는다. */
+@font-face {
+  font-family: Galmuri14;
+  src: url('../node_modules/galmuri/dist/Galmuri14.woff2') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Galmuri11;
+  src: url('../node_modules/galmuri/dist/Galmuri11.woff2') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Galmuri11;
+  font-weight: 700;
+  src: url('../node_modules/galmuri/dist/Galmuri11-Bold.woff2') format('woff2');
+  font-display: swap;
+}

@@ -29,11 +29,12 @@ npm --prefix frontend install
 
 ```
 boardgame-home/
-  backend/    app/(main, games, stores, club, ledger, excel, players, store, config), tests/
-  frontend/   src/(App, main, components/, pages/, lib/, styles.css), public/
+  backend/    app/(main, games, stores, club, ledger, village, excel, players, store, config), tests/
+  frontend/   src/(App, main, components/, pages/, lib/, styles.css), public/(village/: 마을 지도·그림)
   shared/     서버·화면이 함께 쓰는 테스트 사례 (인원 해석, 스토어 열쇠)
-  data/       collection.json, stores.json, club_*.json(회비·회계록), backups/   ← git 제외
-  scripts/    migrate_from_danseo.py
+  data/       collection.json, stores.json, club_*.json(회비·회계록), village.json(마을), backups/   ← git 제외
+  scripts/    migrate_from_danseo.py, build_village_assets.py(마을 그림 만들기, Pillow 필요)
+  assets-src/ 마을 그림 원본 팩   ← git 제외 (받는 법: docs/research/village-assets.md)
   handoff/    옛 앱 인수인계 원본 (읽기 전용)
   docs/       개발 문서 (docs/README.md가 목차)
   start.bat

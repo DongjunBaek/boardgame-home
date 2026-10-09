@@ -1,6 +1,8 @@
 // 서버 API 호출. 개발 중에는 Vite가 /api를 FastAPI로 넘겨준다 (vite.config.ts).
 import type { Club, Member, MemberInput, Payment, PaymentInput, Tier, TierInput } from './club'
 import type { EntryInput, LedgerEntry } from './ledger'
+import type { PlayerSpot } from './village/scene'
+import type { VillageState } from './village/state'
 import type { ExcelPreview, ExcelReport, Game, GameInput, Store, StoreInput } from './types'
 
 export type Health = { status: string; data_dir: string }
@@ -92,3 +94,20 @@ const entryPath = (id: string) => `/club/ledger/${encodeURIComponent(id)}`
 export const createEntry = (input: EntryInput) => request<LedgerEntry>('POST', '/club/ledger', input)
 export const updateEntry = (id: string, patch: EntryInput) => request<LedgerEntry>('PATCH', entryPath(id), patch)
 export const deleteEntry = (id: string) => request<void>('DELETE', entryPath(id))
+
+// ---------- 대시보드 마을 ----------
+
+/** 처음 부르면 서버가 기본 상태를 만들어 저장한다 */
+export const fetchVillage = (fetchFn?: typeof fetch) => getJson<VillageState>('/village', fetchFn)
+
+export const saveVillagePlayer = (spot: PlayerSpot) => request<VillageState>('PUT', '/village/player', { map: 'village', ...spot })
+
+/** 화면을 떠날 때: 페이지가 닫혀도 요청이 끝까지 가도록 keepalive로 보낸다 */
+export function saveVillagePlayerOnLeave(spot: PlayerSpot) {
+  void fetch('/api/village/player', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ map: 'village', ...spot }),
+    keepalive: true,
+  }).catch(() => {})
+}

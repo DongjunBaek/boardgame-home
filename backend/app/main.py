@@ -2,7 +2,7 @@
 import hashlib
 import json
 import re
-from datetime import date
+from datetime import date, datetime
 from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Request
@@ -10,10 +10,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from backend.app import club, excel, ledger
+from backend.app import club, excel, ledger, village
 from backend.app.config import FRONTEND_DIST, data_dir
 from backend.app.games import GameConflictError, GameIn, apply_patch, describe_error, new_game
-from backend.app.store import DataFileCorruptedError, collection_lock, load_collection, load_json, save_collection, save_json
+from backend.app.store import DataFileCorruptedError, collection_lock, load_collection, load_json, load_object, save_collection, save_json
 from backend.app.stores import STORES_FILE, StoreConflictError, StoreIn, apply_store_patch, new_store, seed_stores
 
 app = FastAPI(title="boardgame-home")
@@ -367,6 +367,35 @@ def delete_entry(entry_id: str) -> Response:
             raise HTTPException(404, f"없는 기록입니다: {entry_id}")
         save_json(ledger.LEDGER_FILE, rest)
     return Response(status_code=204)
+
+
+# ---------- 대시보드 마을 ----------
+
+
+def _village() -> dict:
+    """처음 열 때 기본 상태를 만들어 저장한다. 잠금 안에서 부른다."""
+    stored = load_object(village.VILLAGE_FILE)
+    state = village.normalize(stored, datetime.now())
+    if stored is None:
+        save_json(village.VILLAGE_FILE, state)
+    return state
+
+
+@app.get("/api/village")
+def get_village() -> dict:
+    with collection_lock():
+        return _village()
+
+
+@app.put("/api/village/player")
+def put_village_player(data: village.PlayerIn) -> dict:
+    with collection_lock():
+        before = _village()
+        state = village.set_player(before, data)
+        # 제자리면 쓰지 않는다 (저장할 때마다 백업이 하나씩 생기므로)
+        if state != before:
+            save_json(village.VILLAGE_FILE, state)
+    return state
 
 
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])

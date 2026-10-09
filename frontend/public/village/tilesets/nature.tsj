@@ -1,0 +1,15 @@
+{
+  "type": "tileset",
+  "version": "1.10",
+  "tiledversion": "1.11.0",
+  "name": "nature",
+  "tilewidth": 16,
+  "tileheight": 16,
+  "image": "nature.png",
+  "imagewidth": 144,
+  "imageheight": 80,
+  "columns": 9,
+  "tilecount": 45,
+  "margin": 0,
+  "spacing": 0
+}
