@@ -1,12 +1,11 @@
-import { CircleAlert, CircleCheck, FileDown, FileUp, Plus, X } from 'lucide-react'
+import { FileDown, FileUp, Plus } from 'lucide-react'
 import FilterBar from '../components/FilterBar'
 import GameTable from '../components/GameTable'
 import GenreTabs from '../components/GenreTabs'
+import Toast, { type Notice } from '../components/Toast'
 import { EXCEL_DOWNLOAD_URL } from '../lib/api'
 import type { Filters, GenreTabInfo, PublisherOption, Sort, SortKey } from '../lib/games'
 import type { Game, GameInput } from '../lib/types'
-
-export type Notice = { kind: 'ok' | 'error'; text: string }
 
 type Props = {
   ready: boolean
@@ -84,15 +83,7 @@ export default function GamesPage(p: Props) {
 
       {p.ready && (
         <div className="dock">
-          {p.notice && (
-            <div className={`notice ${p.notice.kind}`} role={p.notice.kind === 'error' ? 'alert' : 'status'}>
-              {p.notice.kind === 'ok' ? <CircleCheck size={16} aria-hidden="true" /> : <CircleAlert size={16} aria-hidden="true" />}
-              <span>{p.notice.text}</span>
-              <button type="button" className="icon-btn" aria-label="알림 닫기" onClick={p.onCloseNotice}>
-                <X size={14} aria-hidden="true" />
-              </button>
-            </div>
-          )}
+          {p.notice && <Toast notice={p.notice} onClose={p.onCloseNotice} />}
           <FilterBar filters={p.filters} publishers={p.publishers} storeName={p.storeName} shown={p.games.length} onChange={p.onFilters} />
         </div>
       )}

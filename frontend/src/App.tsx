@@ -5,12 +5,14 @@ import ExcelImportDialog from './components/ExcelImportDialog'
 import GameDialog from './components/GameDialog'
 import SideNav from './components/SideNav'
 import StoreDialog from './components/StoreDialog'
+import type { Notice } from './components/Toast'
 import { deleteStore, fetchGames, fetchStores, updateGame } from './lib/api'
 import { applyGamePatch, currentValues, EMPTY_FILTERS, filterGames, genreTabs, publisherOptions, sortGames, summarize, type Sort, type SortKey } from './lib/games'
 import { groupNames, groupStores, storeKey } from './lib/stores'
 import { NAV, PLACEHOLDER_PAGES } from './lib/nav'
 import type { ExcelReport, Game, GameInput, Store } from './lib/types'
-import GamesPage, { type Notice } from './pages/GamesPage'
+import ClubDuesPage from './pages/ClubDuesPage'
+import GamesPage from './pages/GamesPage'
 import PlaceholderPage from './pages/PlaceholderPage'
 
 type Load = { kind: 'loading' } | { kind: 'ok' } | { kind: 'error'; message: string }
@@ -152,6 +154,10 @@ export default function App() {
                 onCloseNotice={() => setNotice(null)}
               />
             }
+          />
+          <Route
+            path={NAV.dues.path}
+            element={<ClubDuesPage notice={notice} notify={notify} onCloseNotice={() => setNotice(null)} />}
           />
           {PLACEHOLDER_PAGES.map((item) => (
             <Route key={item.path} path={item.path} element={<PlaceholderPage item={item} />} />

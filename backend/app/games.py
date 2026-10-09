@@ -24,6 +24,10 @@ FIELD_LABELS = {
     "shop": "산 곳",
     # 스토어 (stores.py)
     "name": "이름", "url": "주소", "group": "묶음", "memo": "메모",
+    # 동아리 회비 (club.py)
+    "monthly_fee": "월 금액", "exempt": "면제", "tier_id": "구분", "joined": "가입 월", "status": "상태",
+    "status_since": "상태 시작 달", "kind": "종류", "amount": "금액", "paid_on": "낸 날", "method": "방법",
+    "months": "개월 수",
 }
 
 

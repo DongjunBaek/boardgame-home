@@ -29,10 +29,10 @@ npm --prefix frontend install
 
 ```
 boardgame-home/
-  backend/    app/(main, games, stores, excel, players, store, config), tests/
+  backend/    app/(main, games, stores, club, excel, players, store, config), tests/
   frontend/   src/(App, main, components/, pages/, lib/, styles.css), public/
   shared/     서버·화면이 함께 쓰는 테스트 사례 (인원 해석, 스토어 열쇠)
-  data/       collection.json, stores.json, backups/   ← git 제외
+  data/       collection.json, stores.json, club_*.json(회비), backups/   ← git 제외
   scripts/    migrate_from_danseo.py
   handoff/    옛 앱 인수인계 원본 (읽기 전용)
   docs/       개발 문서 (docs/README.md가 목차)

@@ -1,6 +1,6 @@
 # 동아리 회비 관리
 
-주소: `/club/dues` · 상태: **기획 중** (2026-10-09 기획 시작)
+주소: `/club/dues` · 상태: **v1 완료** (2026-10-09)
 
 ## 정한 것
 
@@ -54,7 +54,7 @@
 - 동아리 돈으로 산 게임과 '내 보드게임 목록' 연결
 - 하지 않음: 회원 로그인, 은행·자동이체 연동, 알림 자동 발송
 
-## 화면 (안)
+## 화면
 
 ```
 동아리 회비 관리      이번 달 7/12명 · 70,000원 · 올해 미납 45,000원      [회원 추가]
@@ -70,7 +70,7 @@
 - 디자인은 [design/ui-rules.md](../design/ui-rules.md)를 따른다. 표 머리줄은 작고 흐리게, 세로선은 없다.
 - 아래 입력창(`.composer`)은 목록 화면 것이라 여기서는 쓰지 않는다.
 
-## 데이터 (안)
+## 데이터
 
 `data/` 아래 JSON 파일 세 개를 둔다. `backend/app/store.py`의 `load_json`·`save_json`(원자적 쓰기·백업)을 그대로 쓴다.
 
@@ -84,35 +84,44 @@
    "status_since": null,                      // 휴면·탈퇴가 시작된 달
    "memo": null }]
 
-// data/club_payments.json  달마다 한 건 (회원 + 달이 열쇠)
-[{ "id": "pay:5e6f", "member_id": "member:3c4d", "month": "2026-10",
+// data/club_payments.json  달마다 한 건 (회원 + 달이 열쇠라 따로 ID는 없다)
+[{ "member_id": "member:3c4d", "month": "2026-10",
    "kind": "paid",                            // paid | exempt
    "amount": 10000, "paid_on": "2026-10-05", "method": "bank", "memo": null }]
 ```
 
 - 미납은 저장하지 않고 계산한다. 회원이 활동 중인 지난 달인데 기록이 없으면 미납이다.
-- 여러 달을 한 번에 낸 경우는 달마다 기록을 하나씩 만든다. 창에서 "N개월 함께 납부"를 고를 수 있게 한다.
+- 여러 달을 한 번에 낸 경우는 달마다 기록을 하나씩 만든다. 창의 '몇 달 치'에서 고른다.
 
-## API (안)
+## API
 
 | 주소 | 하는 일 |
 |---|---|
-| `GET/POST /api/club/tiers`, `PATCH/DELETE /api/club/tiers/{id}` | 회비 구분. 쓰는 회원이 있으면 지우지 못한다 |
-| `GET/POST /api/club/members`, `PATCH /api/club/members/{id}` | 회원. 삭제 대신 상태를 바꾼다 |
-| `GET /api/club/payments?year=2026` | 그 해 기록 |
-| `PUT /api/club/payments/{member_id}/{month}`, `DELETE` 같은 주소 | 한 칸 기록 / 지우기 |
+| `GET /api/club` | 구분·회원·납부 기록을 한 번에 (20명 규모라 충분). 처음 부르면 기본 구분 정회원·준회원(금액 미정)·면제를 만든다 |
+| `POST /api/club/tiers`, `PATCH`·`DELETE /api/club/tiers/{id}` | 회비 구분. 쓰는 회원이 있으면 지우지 못한다 (409) |
+| `POST /api/club/members`, `PATCH`·`DELETE /api/club/members/{id}` | 회원. 납부 기록이 있으면 지우지 못하고 상태를 탈퇴로 바꾼다 (409) |
+| `PUT /api/club/payments/{member_id}/{YYYY-MM}` | 한 칸 기록 (덮어씀). `months`가 2 이상이면 이어지는 달까지 적고, 그 달들에 기록이 있으면 거절 (409) |
+| `DELETE /api/club/payments/{member_id}/{YYYY-MM}` | 한 칸 지우기 |
+
+## 코드
+
+- 서버: `backend/app/club.py` (규칙·입력 모델), `backend/app/main.py` (주소), 테스트 `backend/tests/test_club.py`
+- 화면: `frontend/src/pages/ClubDuesPage.tsx`, `components/club/` (PaymentDialog·MemberDialog·TierDialog·FormDialog)
+- 미납 계산: `frontend/src/lib/club.ts` + `club.test.ts`
+- 저장: `data/club_tiers.json`, `club_members.json`, `club_payments.json` (`save_json`으로 원자적 쓰기·백업)
 
 ## 할 일
 
 - [x] 일반적인 기능 정리, 첫 버전 범위 정하기 (2026-10-09)
-- [ ] 이 문서의 화면·데이터 안 확인받기
-- [ ] 서버: 저장·API·테스트 (`backend/app/club.py`, `backend/tests/test_club.py`)
-- [ ] 화면: `frontend/src/pages/ClubDuesPage.tsx`, 미납 계산 로직 `lib/club.ts` + 테스트
-- [ ] 실제 화면 확인 (sandbox), 문서 갱신
+- [x] 화면·데이터 안 확인받기 (2026-10-09 "그대로 개발")
+- [x] 서버: 저장·API·테스트 8개
+- [x] 화면: 현황표·회원 탭·입력 창 3개, 미납 계산 테스트 7개
+- [x] 실제 화면 확인 (sandbox, 2026-10-09): 현황표, 칸 눌러 2개월 한 번에 납부 → 미납 사라짐·알림, 회원 탭·구분 상자, 회원 고치기 창, 밝은·어두운 화면, 콘솔 오류 없음
+- 확인 못 함: 회비 구분 추가·삭제, 회원 삭제는 화면에서 눌러 보지 않았다 (서버 테스트로만 확인). 폭 375px 화면
 
-## 열린 질문 (기본값으로 진행. [questions.md](../questions.md)에도 적음)
+## 열린 질문 (기본값으로 만들었다. [questions.md](../questions.md) 9~12번)
 
-- 회비 구분 처음 값: 정회원 · 준회원 · 면제 세 가지로 시작하고, 금액은 직접 적는다
+- 회비 구분 처음 값: 정회원 · 준회원(금액 미정) · 면제. 금액은 회원 탭 오른쪽 '회비 구분'에서 적는다
 - 현황표 기본 연도: 올해
-- 휴면 회원을 현황표에 보일지: 보이되 흐리게 한다
-- 회원 정렬: 이름순
+- 휴면·탈퇴 회원: 그 해에 회원이었으면 현황표에 흐리게 보인다
+- 회원 정렬: 활동 → 휴면 → 탈퇴, 그 안에서 이름순

@@ -1,4 +1,5 @@
 // 서버 API 호출. 개발 중에는 Vite가 /api를 FastAPI로 넘겨준다 (vite.config.ts).
+import type { Club, Member, MemberInput, Payment, PaymentInput, Tier, TierInput } from './club'
 import type { ExcelPreview, ExcelReport, Game, GameInput, Store, StoreInput } from './types'
 
 export type Health = { status: string; data_dir: string }
@@ -60,3 +61,24 @@ export const previewExcel = (file: Blob, fetchFn?: typeof fetch) =>
 
 export const applyExcel = (file: Blob, base: string, fetchFn?: typeof fetch) =>
   request<{ report: ExcelReport }>('POST', `/excel/apply?base=${encodeURIComponent(base)}`, file, fetchFn)
+
+// ---------- 동아리 회비 ----------
+
+export const fetchClub = (fetchFn?: typeof fetch) => getJson<Club>('/club', fetchFn)
+
+const tierPath = (id: string) => `/club/tiers/${encodeURIComponent(id)}`
+const memberPath = (id: string) => `/club/members/${encodeURIComponent(id)}`
+const paymentPath = (memberId: string, month: string) => `/club/payments/${encodeURIComponent(memberId)}/${month}`
+
+export const createTier = (input: TierInput) => request<Tier>('POST', '/club/tiers', input)
+export const updateTier = (id: string, patch: TierInput) => request<Tier>('PATCH', tierPath(id), patch)
+export const deleteTier = (id: string) => request<void>('DELETE', tierPath(id))
+
+export const createMember = (input: MemberInput) => request<Member>('POST', '/club/members', input)
+export const updateMember = (id: string, patch: MemberInput) => request<Member>('PATCH', memberPath(id), patch)
+export const deleteMember = (id: string) => request<void>('DELETE', memberPath(id))
+
+/** 한 칸 기록. months가 2 이상이면 이어지는 여러 달을 함께 적고, 적은 기록들을 돌려준다 */
+export const putPayment = (memberId: string, month: string, input: PaymentInput) =>
+  request<Payment[]>('PUT', paymentPath(memberId, month), input)
+export const deletePayment = (memberId: string, month: string) => request<void>('DELETE', paymentPath(memberId, month))

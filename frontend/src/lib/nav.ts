@@ -12,4 +12,4 @@ export const NAV = {
 } satisfies Record<string, NavItem>
 
 /** 아직 기능이 없는 메뉴. '준비 중' 화면을 보여 준다 */
-export const PLACEHOLDER_PAGES: NavItem[] = [NAV.dashboard, NAV.dues, NAV.board, NAV.admin]
+export const PLACEHOLDER_PAGES: NavItem[] = [NAV.dashboard, NAV.board, NAV.admin]

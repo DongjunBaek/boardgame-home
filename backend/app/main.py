@@ -1,6 +1,7 @@
 """서버 진입점. /api 아래는 API, 그 밖의 주소는 빌드된 화면(frontend/dist)을 돌려준다."""
 import hashlib
 import json
+import re
 from datetime import date
 from urllib.parse import quote
 
@@ -9,7 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from backend.app import excel
+from backend.app import club, excel
 from backend.app.config import FRONTEND_DIST, data_dir
 from backend.app.games import GameConflictError, GameIn, apply_patch, describe_error, new_game
 from backend.app.store import DataFileCorruptedError, collection_lock, load_collection, load_json, save_collection, save_json
@@ -36,6 +37,7 @@ def invalid_input(_: Request, e: RequestValidationError) -> JSONResponse:
 
 @app.exception_handler(GameConflictError)
 @app.exception_handler(StoreConflictError)
+@app.exception_handler(club.ClubConflictError)
 def conflict(_: Request, e: Exception) -> JSONResponse:
     return JSONResponse({"detail": str(e)}, status_code=409)
 
@@ -196,6 +198,138 @@ async def apply_excel(request: Request, base: str) -> dict:
         if report["changes"]:
             save_collection(new_games)
     return {"report": report}
+
+
+# ---------- 동아리 회비 ----------
+
+
+def _club_tiers() -> list[dict]:
+    """처음에는 기본 구분(정회원·준회원·면제)을 만들어 저장한다. 잠금 안에서 부른다."""
+    tiers = load_json(club.TIERS_FILE)
+    if tiers is None:
+        tiers = club.seed_tiers()
+        save_json(club.TIERS_FILE, tiers)
+    return tiers
+
+
+def _club_list(name: str) -> list[dict]:
+    return load_json(name) or []
+
+
+@app.get("/api/club")
+def get_club() -> dict:
+    # 회원 20명 정도라 한 번에 다 보낸다
+    with collection_lock():
+        return {
+            "tiers": _club_tiers(),
+            "members": _club_list(club.MEMBERS_FILE),
+            "payments": _club_list(club.PAYMENTS_FILE),
+        }
+
+
+@app.post("/api/club/tiers", status_code=201)
+def create_tier(data: club.TierIn) -> dict:
+    with collection_lock():
+        tiers = _club_tiers()
+        try:
+            tier = club.new_tier(tiers, data)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        save_json(club.TIERS_FILE, [*tiers, tier])
+    return tier
+
+
+@app.patch("/api/club/tiers/{tier_id}")
+def update_tier(tier_id: str, patch: club.TierIn) -> dict:
+    with collection_lock():
+        try:
+            tiers = club.apply_tier_patch(_club_tiers(), tier_id, patch)
+        except KeyError as e:
+            raise HTTPException(404, f"없는 구분입니다: {tier_id}") from e
+        save_json(club.TIERS_FILE, tiers)
+    return next(t for t in tiers if t["id"] == tier_id)
+
+
+@app.delete("/api/club/tiers/{tier_id}", status_code=204)
+def delete_tier(tier_id: str) -> Response:
+    with collection_lock():
+        tiers = _club_tiers()
+        rest = [t for t in tiers if t["id"] != tier_id]
+        if len(rest) == len(tiers):
+            raise HTTPException(404, f"없는 구분입니다: {tier_id}")
+        club.check_tier_unused(_club_list(club.MEMBERS_FILE), tier_id)
+        save_json(club.TIERS_FILE, rest)
+    return Response(status_code=204)
+
+
+@app.post("/api/club/members", status_code=201)
+def create_member(data: club.MemberIn) -> dict:
+    with collection_lock():
+        members = _club_list(club.MEMBERS_FILE)
+        try:
+            member = club.new_member(members, _club_tiers(), data)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        save_json(club.MEMBERS_FILE, [*members, member])
+    return member
+
+
+@app.patch("/api/club/members/{member_id}")
+def update_member(member_id: str, patch: club.MemberIn) -> dict:
+    with collection_lock():
+        try:
+            members = club.apply_member_patch(_club_list(club.MEMBERS_FILE), _club_tiers(), member_id, patch)
+        except KeyError as e:
+            raise HTTPException(404, f"없는 회원입니다: {member_id}") from e
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        save_json(club.MEMBERS_FILE, members)
+    return next(m for m in members if m["id"] == member_id)
+
+
+@app.delete("/api/club/members/{member_id}", status_code=204)
+def delete_member(member_id: str) -> Response:
+    with collection_lock():
+        members = _club_list(club.MEMBERS_FILE)
+        rest = [m for m in members if m["id"] != member_id]
+        if len(rest) == len(members):
+            raise HTTPException(404, f"없는 회원입니다: {member_id}")
+        club.check_member_removable(_club_list(club.PAYMENTS_FILE), member_id)
+        save_json(club.MEMBERS_FILE, rest)
+    return Response(status_code=204)
+
+
+def _check_month(month: str) -> None:
+    if not re.match(club.MONTH_PATTERN, month):
+        raise HTTPException(422, f"달 형식이 아닙니다 (예: 2026-10): {month}")
+
+
+@app.put("/api/club/payments/{member_id}/{month}")
+def put_payment(member_id: str, month: str, data: club.PaymentIn) -> list[dict]:
+    _check_month(month)
+    with collection_lock():
+        try:
+            payments, written = club.put_payments(
+                _club_list(club.PAYMENTS_FILE), _club_list(club.MEMBERS_FILE), member_id, month, data
+            )
+        except KeyError as e:
+            raise HTTPException(404, f"없는 회원입니다: {member_id}") from e
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        save_json(club.PAYMENTS_FILE, payments)
+    return written
+
+
+@app.delete("/api/club/payments/{member_id}/{month}", status_code=204)
+def delete_payment(member_id: str, month: str) -> Response:
+    _check_month(month)
+    with collection_lock():
+        try:
+            payments = club.remove_payment(_club_list(club.PAYMENTS_FILE), member_id, month)
+        except KeyError as e:
+            raise HTTPException(404, f"기록이 없습니다: {month}") from e
+        save_json(club.PAYMENTS_FILE, payments)
+    return Response(status_code=204)
 
 
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
