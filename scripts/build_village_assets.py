@@ -121,6 +121,62 @@ def building(middle_tiles: int, *, chimney: bool, roof_colors: list[str] | None 
     return im
 
 
+# 아이콘: 팩에 없어서 팩 팔레트 색으로 직접 찍는다 (16×16). 글자 하나가 픽셀 하나
+ICONS = {
+    "coin": (
+        {"o": "#865161", "d": "#ba7c54", "m": "#d79e61", "l": "#f2cf8c", "w": "#f7ebaa"},
+        [
+            "................",
+            "................",
+            ".....oooooo.....",
+            "....ommmmmmo....",
+            "...omllllllmo...",
+            "..omlwwlllllmo..",
+            "..omlwlmmmllmo..",
+            "..omllmllmllmo..",
+            "..omllmllmllmo..",
+            "..omllmmmdllmo..",
+            "..omlllllllldo..",
+            "...omlllllldo...",
+            "....oddddddo....",
+            ".....oooooo.....",
+            "................",
+            "................",
+        ],
+    ),
+    "crystal": (
+        {"o": "#4c468b", "d": "#7180b1", "m": "#92b2d4", "l": "#cbe0de", "w": "#f3f4e7"},
+        [
+            "................",
+            "................",
+            "....oooooooo....",
+            "...owwllmmmdo...",
+            "..owllllmmmmdo..",
+            ".oooooooooooooo.",
+            ".olllmmmmmmmddo.",
+            "..ollmmmmmmddo..",
+            "...olmmmmmddo...",
+            "....olmmmddo....",
+            ".....olmddo.....",
+            "......oldo......",
+            ".......oo.......",
+            "................",
+            "................",
+            "................",
+        ],
+    ),
+}
+
+
+def icon(colors: dict[str, str], rows: list[str]) -> Image.Image:
+    im = Image.new("RGBA", (T, T))
+    for y, row in enumerate(rows):
+        for x, ch in enumerate(row):
+            if ch in colors:
+                im.putpixel((x, y), (*_rgb(colors[ch]), 255))
+    return im
+
+
 def tileset_json(name: str, image: Image.Image, extra: dict | None = None) -> dict:
     data = {
         "type": "tileset",
@@ -189,6 +245,10 @@ def main() -> None:
     sprites = OUT / "sprites"
     sprites.mkdir(exist_ok=True)
     shutil.copyfile(SRC / "Characters" / "Basic Charakter Spritesheet.png", sprites / "player-default.png")
+    icons = OUT / "icons"
+    icons.mkdir(exist_ok=True)
+    for name, (colors, rows) in ICONS.items():
+        icon(colors, rows).save(icons / f"{name}.png")
     print(f"만들었습니다: {OUT.relative_to(ROOT)}")
 
 

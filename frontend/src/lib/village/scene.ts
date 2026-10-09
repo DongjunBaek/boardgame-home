@@ -31,6 +31,8 @@ export type SceneOptions = {
 export type VillageScene = {
   /** 패널이 열려 있는 동안 걷기를 멈춘다 */
   setPaused: (paused: boolean) => void
+  /** 밭 작물 그림 단계 1~4 ('crops' 층의 타일을 같은 줄의 다른 단계로 바꾼다) */
+  setGrowth: (stage: number) => void
   player: () => PlayerSpot
   destroy: () => void
 }
@@ -105,6 +107,9 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
     return tex
   }
 
+  /** 밭 작물: 작물 그림 한 줄 = 씨앗 봉투 · 자라는 단계 1~4 · 거둔 열매 */
+  const crops: { sprite: Sprite; firstgid: number; row: number; columns: number }[] = []
+
   /** 움직이는 타일(물결): 같은 시계로 모두 함께 넘긴다 */
   const animated: { sprite: Sprite; frames: { gid: number; until: number }[]; total: number }[] = []
   function animationOf(gid: number) {
@@ -140,6 +145,11 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
         box.addChild(sprite)
         const anim = animationOf(gid)
         if (anim) animated.push({ sprite, ...anim })
+        const hit = layer.name === 'crops' ? resolveGid(gid, tilesets) : null
+        if (hit) {
+          const { columns } = hit.ts.tileset
+          crops.push({ sprite, firstgid: hit.ts.firstgid, row: Math.floor(hit.id / columns), columns })
+        }
       })
       target.addChild(box)
     } else if (layer.visible) {
@@ -329,6 +339,12 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
       if (p) path = []
     },
     player: snapshot,
+    setGrowth(stage) {
+      for (const c of crops) {
+        const tex = textureOf(c.firstgid + c.row * c.columns + stage)
+        if (tex) c.sprite.texture = tex
+      }
+    },
     destroy() {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)

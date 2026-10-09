@@ -102,6 +102,9 @@ export const fetchVillage = (fetchFn?: typeof fetch) => getJson<VillageState>('/
 
 export const saveVillagePlayer = (spot: PlayerSpot) => request<VillageState>('PUT', '/village/player', { map: 'village', ...spot })
 
+/** 밭에 쌓인 코인 거두기. 거둘 것이 없으면 harvested가 0이다 */
+export const harvestVillage = () => request<{ harvested: number; village: VillageState }>('POST', '/village/harvest')
+
 /** 화면을 떠날 때: 페이지가 닫혀도 요청이 끝까지 가도록 keepalive로 보낸다 */
 export function saveVillagePlayerOnLeave(spot: PlayerSpot) {
   void fetch('/api/village/player', {

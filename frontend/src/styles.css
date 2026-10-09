@@ -1855,6 +1855,8 @@ label.checks {
   --v-ink: #754c60;
   --v-ink-soft: #90625d;
   --v-leaf: #67835c;
+  --v-leaf-light: #78a158;
+  --v-gold: #eeba77;
 
   position: relative;
   flex: 1;
@@ -1942,6 +1944,111 @@ label.checks {
 
 .village-panel p.village-soon {
   margin: 4px 0 0;
+}
+
+/* 위쪽 자원 줄: 코인 · 크리스탈 */
+.village-bar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.village-res {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 84px;
+  padding: 0 10px 0 2px;
+  font: 15px/1 Galmuri14, 'Pretendard Variable', sans-serif;
+  color: var(--v-ink);
+  background: var(--v-paper);
+  border: 2px solid var(--v-ink);
+  border-radius: 4px;
+  box-shadow: 0 2px 0 var(--v-ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.village-res img,
+.village-meter-text img {
+  image-rendering: pixelated;
+}
+
+/* 밭: 쌓인 코인 막대 */
+.village-meter {
+  height: 12px;
+  margin: 10px 0 4px;
+  overflow: hidden;
+  background: var(--v-paper-deep);
+  border: 2px solid var(--v-ink);
+  border-radius: 2px;
+}
+
+.village-meter span {
+  display: block;
+  height: 100%;
+  background: var(--v-gold);
+  transition: width 0.2s ease-out;
+}
+
+.village-panel p.village-meter-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.village-meter-text span {
+  margin-left: auto;
+  font: 12px/1.4 Galmuri11, 'Pretendard Variable', sans-serif;
+  color: var(--v-ink-soft);
+}
+
+.village-button {
+  width: 100%;
+  padding: 6px 0 7px;
+  font: 700 15px/1.2 Galmuri11, 'Pretendard Variable', sans-serif;
+  color: var(--v-paper);
+  background: var(--v-leaf);
+  border: 2px solid var(--v-ink);
+  border-radius: 2px;
+  box-shadow: 0 3px 0 var(--v-ink);
+  cursor: pointer;
+}
+
+.village-button:hover:not(:disabled) {
+  background: var(--v-leaf-light);
+}
+
+.village-button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--v-ink);
+}
+
+.village-button:disabled {
+  color: var(--v-ink-soft);
+  background: var(--v-paper-deep);
+  box-shadow: 0 3px 0 var(--v-ink-soft);
+  cursor: default;
+}
+
+.village-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.village-panel p.village-note {
+  margin: 8px 0 0;
+  font: 12px/1.4 Galmuri11, 'Pretendard Variable', sans-serif;
+  color: var(--v-leaf);
+}
+
+.village-panel p.village-note.muted {
+  color: var(--v-ink-soft);
 }
 
 .village-close {

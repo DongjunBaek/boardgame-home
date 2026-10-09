@@ -15,7 +15,8 @@ def test_first_get_creates_default_state(isolated_data_dir):
     assert state["coins"] == 0 and state["crystals"] == 0 and state["crop_level"] == 1
     assert state["player"] is None and state["skins"] == {"player": "default", "buildings": {}}
     saved = json.loads((isolated_data_dir / village.VILLAGE_FILE).read_text(encoding="utf-8"))
-    assert saved == state
+    # 파일에는 상태만, 화면에는 밭 계산과 서버 시각을 더해 보낸다
+    assert saved == {k: v for k, v in state.items() if k not in ("farm", "server_time")}
     # 두 번째로 읽어도 처음 만든 시각이 그대로다
     assert client.get("/api/village").json()["last_harvest"] == state["last_harvest"]
 
@@ -52,3 +53,57 @@ def test_corrupted_file_is_not_overwritten(isolated_data_dir):
     res = client.get("/api/village")
     assert res.status_code == 500 and "손상" in res.json()["detail"]
     assert (isolated_data_dir / village.VILLAGE_FILE).read_text(encoding="utf-8") == "[1, 2]"
+
+
+# ---------- 밭 ----------
+
+T0 = datetime(2026, 10, 9, 9, 0, 0)
+
+
+def state_at(last: datetime, level: int = 1, coins: int = 0) -> dict:
+    s = village.default_state(last)
+    s.update(crop_level=level, coins=coins)
+    return s
+
+
+def test_farm_counts_hours_and_caps_at_12():
+    s = state_at(T0)
+    assert village.farm(s, T0)["pending"] == 0
+    assert village.farm(s, datetime(2026, 10, 9, 10, 30))["pending"] == 15  # 1.5시간 × 10
+    assert village.farm(s, datetime(2026, 10, 10, 9, 0))["pending"] == 120  # 24시간이어도 12시간만
+    assert village.farm(state_at(T0, level=3), datetime(2026, 10, 9, 10, 0))["pending"] == 60
+    assert village.farm(s, T0)["full_at"] == "2026-10-09T21:00:00"
+    # 시계가 뒤로 가면 0
+    assert village.farm(s, datetime(2026, 10, 9, 8, 0))["pending"] == 0
+
+
+def test_harvest_keeps_leftover_time_under_cap():
+    s, got = village.harvest(state_at(T0, coins=5), datetime(2026, 10, 9, 9, 9, 0))  # 9분 = 1.5개
+    assert got == 1 and s["coins"] == 6
+    # 6분어치만 썼으니 3분은 남는다: 3분 더 지나면 또 하나
+    assert s["last_harvest"].startswith("2026-10-09T09:06:00")
+    assert village.farm(s, datetime(2026, 10, 9, 9, 12, 0))["pending"] == 1
+
+
+def test_harvest_over_cap_restarts_from_now_and_nothing_to_harvest_changes_nothing():
+    now = datetime(2026, 10, 10, 12, 0, 0)
+    s, got = village.harvest(state_at(T0), now)
+    assert got == 120 and s["last_harvest"] == "2026-10-10T12:00:00"
+    same, zero = village.harvest(s, now)
+    assert zero == 0 and same is s
+
+
+def test_harvest_api_saves_and_returns_view(isolated_data_dir, monkeypatch):
+    from backend.app import main
+
+    monkeypatch.setattr(main, "_now", lambda: T0)
+    first = client.get("/api/village").json()
+    assert first["farm"] == {"rate_per_hour": 10, "cap_hours": 12, "pending": 0, "full_at": "2026-10-09T21:00:00"}
+    assert first["server_time"] == "2026-10-09T09:00:00"
+    assert client.post("/api/village/harvest").json()["harvested"] == 0
+
+    monkeypatch.setattr(main, "_now", lambda: datetime(2026, 10, 9, 12, 0))
+    res = client.post("/api/village/harvest").json()
+    assert res["harvested"] == 30 and res["village"]["coins"] == 30 and res["village"]["farm"]["pending"] == 0
+    saved = json.loads((isolated_data_dir / village.VILLAGE_FILE).read_text(encoding="utf-8"))
+    assert saved["coins"] == 30 and "farm" not in saved and "server_time" not in saved

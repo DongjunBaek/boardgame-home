@@ -372,10 +372,15 @@ def delete_entry(entry_id: str) -> Response:
 # ---------- 대시보드 마을 ----------
 
 
+def _now() -> datetime:
+    """테스트가 시각을 바꿔 끼울 수 있게 한곳에서 읽는다."""
+    return datetime.now()
+
+
 def _village() -> dict:
     """처음 열 때 기본 상태를 만들어 저장한다. 잠금 안에서 부른다."""
     stored = load_object(village.VILLAGE_FILE)
-    state = village.normalize(stored, datetime.now())
+    state = village.normalize(stored, _now())
     if stored is None:
         save_json(village.VILLAGE_FILE, state)
     return state
@@ -384,7 +389,7 @@ def _village() -> dict:
 @app.get("/api/village")
 def get_village() -> dict:
     with collection_lock():
-        return _village()
+        return village.view(_village(), _now())
 
 
 @app.put("/api/village/player")
@@ -395,7 +400,18 @@ def put_village_player(data: village.PlayerIn) -> dict:
         # 제자리면 쓰지 않는다 (저장할 때마다 백업이 하나씩 생기므로)
         if state != before:
             save_json(village.VILLAGE_FILE, state)
-    return state
+    return village.view(state, _now())
+
+
+@app.post("/api/village/harvest")
+def harvest_village() -> dict:
+    """밭에 쌓인 코인을 거둔다. 거둘 것이 없으면 아무것도 바꾸지 않고 harvested 0을 돌려준다."""
+    now = _now()
+    with collection_lock():
+        state, got = village.harvest(_village(), now)
+        if got:
+            save_json(village.VILLAGE_FILE, state)
+    return {"harvested": got, "village": village.view(state, now)}
 
 
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
