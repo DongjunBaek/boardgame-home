@@ -31,8 +31,9 @@
   --bad-bg: #fbe7e3;
   --star: #d39a1e;
 
-  --chip-board: #e4ecf6;
-  --chip-board-text: #2f5a8a;
+  /* 장르 색: 보드게임은 이끼색, 머더미스터리는 와인색 */
+  --chip-board: #e8ecdf;
+  --chip-board-text: #4c6634;
   --chip-murder: #f6e3e6;
   --chip-murder-text: #973446;
 
@@ -79,8 +80,8 @@
     --bad-bg: #45272a;
     --star: #f2c14e;
 
-    --chip-board: #283a52;
-    --chip-board-text: #9cc2ef;
+    --chip-board: #2f3a28;
+    --chip-board-text: #b4cd97;
     --chip-murder: #4b2a33;
     --chip-murder-text: #f0a3b1;
 
@@ -339,7 +340,7 @@ svg {
 
 .game-table th,
 .game-table td {
-  padding: 7px 12px;
+  padding: 5px 12px;
   border-bottom: 1px solid var(--border);
   text-align: left;
   vertical-align: middle;
@@ -423,6 +424,9 @@ th[aria-sort='descending'] .sort-btn {
 }
 
 .title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font: inherit;
   font-weight: 600;
   color: var(--text);
@@ -435,6 +439,34 @@ th[aria-sort='descending'] .sort-btn {
 
 .title:hover {
   color: var(--accent);
+}
+
+/* 제목 앞 작은 표지 (사진, 없으면 첫 글자 타일) */
+.thumb {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  object-fit: cover;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.thumb-board {
+  color: var(--chip-board-text);
+  background: var(--chip-board);
+  border-color: transparent;
+}
+
+.thumb-murder {
+  color: var(--chip-murder-text);
+  background: var(--chip-murder);
+  border-color: transparent;
 }
 
 .sub {
@@ -785,6 +817,8 @@ button:disabled {
 }
 
 .stepper button {
+  display: inline-grid;
+  place-items: center;
   width: 22px;
   height: 22px;
   padding: 0;
@@ -864,8 +898,9 @@ button:disabled {
 }
 
 .star {
-  padding: 0 1px;
-  font-size: 15px;
+  display: inline-grid;
+  place-items: center;
+  padding: 1px;
   line-height: 1;
   color: var(--border-strong);
   background: none;
@@ -876,6 +911,10 @@ button:disabled {
 
 .star.on {
   color: var(--star);
+}
+
+.star.on svg {
+  fill: currentColor;
 }
 
 .star:hover {

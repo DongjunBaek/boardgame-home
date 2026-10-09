@@ -1,3 +1,5 @@
+import { Star } from 'lucide-react'
+
 type Props = { value: number | null; onChange: (next: number | null) => void; disabled?: boolean }
 
 /** 별 다섯 개. 지금 점수의 별을 다시 누르면 점수를 지운다. */
@@ -14,7 +16,7 @@ export default function StarRating({ value, onChange, disabled }: Props) {
           disabled={disabled}
           onClick={() => onChange(value === n ? null : n)}
         >
-          {value !== null && n <= value ? '★' : '☆'}
+          <Star size={15} aria-hidden="true" />
         </button>
       ))}
     </span>

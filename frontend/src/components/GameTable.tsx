@@ -1,9 +1,10 @@
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, Minus, Plus } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { formatMinutes, formatPlayers, formatPrice, parseMinutes, parsePlayerInput, parseText, parseWon, shortGenre } from '../lib/format'
 import type { Sort, SortKey } from '../lib/games'
 import type { Game, GameInput } from '../lib/types'
 import EditableCell from './EditableCell'
+import GameThumb from './GameThumb'
 import StarRating from './StarRating'
 
 type Props = {
@@ -61,7 +62,8 @@ export default function GameTable({ games, sort, onSort, onOpen, onEdit }: Props
             <tr key={g.id}>
               <td className="col-title">
                 <button type="button" className="title" onClick={() => onOpen(g)}>
-                  {g.title}
+                  <GameThumb game={g} />
+                  <span>{g.title}</span>
                 </button>
               </td>
               <td className="col-publisher">
@@ -137,7 +139,7 @@ export default function GameTable({ games, sort, onSort, onOpen, onEdit }: Props
                     disabled={g.mine.quantity <= 1}
                     onClick={() => onEdit(g, { mine: { quantity: g.mine.quantity - 1 } })}
                   >
-                    −
+                    <Minus size={12} aria-hidden="true" />
                   </button>
                   <span className="qty">{g.mine.quantity}</span>
                   <button
@@ -145,7 +147,7 @@ export default function GameTable({ games, sort, onSort, onOpen, onEdit }: Props
                     aria-label={`${g.title} 개수 늘리기`}
                     onClick={() => onEdit(g, { mine: { quantity: g.mine.quantity + 1 } })}
                   >
-                    +
+                    <Plus size={12} aria-hidden="true" />
                   </button>
                 </span>
               </td>
@@ -165,7 +167,7 @@ export default function GameTable({ games, sort, onSort, onOpen, onEdit }: Props
           ))}
         </tbody>
       </table>
-      {games.length === 0 && <p className="empty">조건에 맞는 게임이 없습니다.</p>}
+      {games.length === 0 && <p className="empty">조건에 맞는 게임이 없습니다. 아래 입력창에서 거르기를 줄이거나 초기화해 보세요.</p>}
     </div>
   )
 }

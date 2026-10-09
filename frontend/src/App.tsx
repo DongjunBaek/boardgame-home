@@ -167,9 +167,6 @@ export default function App() {
           {load.kind === 'ok' && (
             <p className="summary">
               <span className="summary-pill">
-                총 <b>{summary.total}</b>
-              </span>
-              <span className="summary-pill">
                 안 해봄 <b>{summary.unplayed}</b>
               </span>
             </p>
