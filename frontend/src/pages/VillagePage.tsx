@@ -1,15 +1,38 @@
 import { ArrowLeft, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import '../village-fonts.css'
-import { fetchGames, fetchVillage, gachaVillage, harvestVillage, researchVillage, saveVillagePlayer, saveVillagePlayerOnLeave } from '../lib/api'
+import {
+  fetchGames,
+  fetchVillage,
+  gachaVillage,
+  harvestVillage,
+  researchVillage,
+  saveVillagePlayer,
+  saveVillagePlayerOnLeave,
+  skinGachaVillage,
+  wearSkin,
+} from '../lib/api'
 import { formatMinutes, formatPlayers, formatPrice } from '../lib/format'
 import type { Game } from '../lib/types'
 import { shelfOrder, spineColor } from '../lib/village/books'
 import { clockOffset, farmNow, formatLeft, growthStage, type FarmNow } from '../lib/village/farm'
 import { createVillageScene, type PlayerSpot, type VillageScene } from '../lib/village/scene'
-import { isPlace, itemUrl, objectParticle, PLACES, type GachaResult, type MapName, type PlaceKind, type VillageState } from '../lib/village/state'
+import {
+  BUILDING_NAMES,
+  buildingUrl,
+  isPlace,
+  itemUrl,
+  objectParticle,
+  playerSheetUrl,
+  PLACES,
+  roofOf,
+  type BuildingKind,
+  type GachaResult,
+  type MapName,
+  type PlaceKind,
+  type VillageState,
+} from '../lib/village/state'
 
-const PLAYER_URL = '/village/sprites/player-default.png'
 const COIN_URL = '/village/icons/coin.png'
 const CRYSTAL_URL = '/village/icons/crystal.png'
 const CHEST_CLOSED_URL = '/village/icons/chest-closed.png'
@@ -20,7 +43,7 @@ type Where = { map: MapName; start: PlayerSpot | null; startAt?: string }
 
 const HINTS: Record<MapName, string> = {
   village: '건물을 누르거나 문 앞에서 위로 걸으면 들어가기',
-  house: '책장을 누르면 책 보기 · 아래 문으로 나가기',
+  house: '책장·옷장을 누르면 열기 · 아래 문으로 나가기',
 }
 
 /** 대시보드: 픽셀아트 마을. 지도·캐릭터는 PixiJS 캔버스, 건물 패널은 그 위에 React로 띄운다 */
@@ -73,13 +96,20 @@ export default function VillagePage() {
   const farm = state ? farmNow(state, offset, now) : null
   const stage = farm ? growthStage(farm.ratio) : 1
   const level = state?.crop_level ?? 1
-  // 캔버스가 늦게 만들어져도 지금 작물·책으로 시작하게 기억해 둔다
-  const paintRef = useRef({ level, stage, bookColors })
+  // 입은 스킨 (바뀔 때만 그림을 다시 불러온다)
+  const playerSkin = state?.skins.player ?? 'default'
+  const roofs = state ? (['house', 'shop', 'lab'] as const).map((k) => roofOf(state, k)).join(',') : 'wood,rose,teal'
+  // 캔버스가 늦게 만들어져도 지금 작물·책·스킨으로 시작하게 기억해 둔다
+  const paintRef = useRef({ level, stage, bookColors, playerSkin, roofs })
   useEffect(() => {
-    paintRef.current = { level, stage, bookColors }
+    paintRef.current = { level, stage, bookColors, playerSkin, roofs }
     sceneRef.current?.setCrop(level, stage)
     sceneRef.current?.setBooks(bookColors)
-  }, [level, stage, bookColors])
+  }, [level, stage, bookColors, playerSkin, roofs])
+  useEffect(() => {
+    const scene = sceneRef.current
+    if (scene) void paintSkins(scene, playerSkin, roofs)
+  }, [playerSkin, roofs])
 
   useEffect(() => {
     const host = hostRef.current
@@ -90,7 +120,7 @@ export default function VillagePage() {
 
     createVillageScene(host, {
       mapUrl: `/village/maps/${where.map}.tmj`,
-      playerSheetUrl: PLAYER_URL,
+      playerSheetUrl: playerSheetUrl(paintRef.current.playerSkin),
       start: where.start,
       startAt: where.startAt,
       onEnter: (kind, at) => {
@@ -112,6 +142,7 @@ export default function VillagePage() {
         sceneRef.current = s
         s.setCrop(paintRef.current.level, paintRef.current.stage)
         s.setBooks(paintRef.current.bookColors)
+        void paintSkins(s, paintRef.current.playerSkin, paintRef.current.roofs)
       })
       .catch((e: Error) => !cancelled && setError(e.message))
 
@@ -168,6 +199,8 @@ export default function VillagePage() {
           )}
           {open === 'bookshelf' ? (
             <BookshelfPanel books={books} colors={bookColors} error={gamesError} onClose={close} />
+          ) : open === 'wardrobe' ? (
+            state && <WardrobePanel state={state} onClose={close} onChanged={apply} />
           ) : (
             open &&
             state &&
@@ -179,8 +212,19 @@ export default function VillagePage() {
   )
 }
 
+/** 입은 스킨을 캔버스에 입힌다. roofs = "집,상점,연구소" 지붕 id */
+async function paintSkins(scene: VillageScene, playerSkin: string, roofs: string) {
+  const [house, shop, lab] = roofs.split(',')
+  await Promise.all([
+    scene.setPlayerSheet(playerSheetUrl(playerSkin)),
+    scene.setBuildingImage('house', buildingUrl('house', house)),
+    scene.setBuildingImage('shop', buildingUrl('shop', shop)),
+    scene.setBuildingImage('lab', buildingUrl('lab', lab)),
+  ])
+}
+
 type PanelProps = {
-  kind: Exclude<PlaceKind, 'bookshelf'>
+  kind: Exclude<PlaceKind, 'bookshelf' | 'wardrobe'>
   state: VillageState
   farm: FarmNow
   onClose: () => void
@@ -303,14 +347,15 @@ function ShopBody({ state, onPulled }: { state: VillageState; onPulled: (s: Vill
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<GachaResult | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const { cost, names } = state.shop
+  const { cost, names, skin_cost: skinCost, skins_left: skinsLeft } = state.shop
   const short = Math.max(0, cost - state.coins)
+  const skinShort = Math.max(0, skinCost - state.crystals)
 
-  async function pull() {
+  async function pull(kind: 'coins' | 'crystals') {
     setBusy(true)
     setError(null)
     try {
-      const res = await gachaVillage()
+      const res = await (kind === 'coins' ? gachaVillage() : skinGachaVillage())
       onPulled(res.village)
       setResult(res.result)
     } catch (e) {
@@ -330,8 +375,27 @@ function ShopBody({ state, onPulled }: { state: VillageState; onPulled: (s: Vill
         <img src={COIN_URL} alt="" width={16} height={16} />
         {cost} / 번<span>{short ? `코인 ${short}개 더 필요합니다` : `가진 코인 ${state.coins.toLocaleString('ko-KR')}`}</span>
       </p>
-      <button type="button" className="village-button" onClick={() => void pull()} disabled={busy || short > 0}>
+      <button type="button" className="village-button" onClick={() => void pull('coins')} disabled={busy || short > 0}>
         뽑기
+      </button>
+      <p className="village-meter-text village-skin-cost">
+        <img src={CRYSTAL_URL} alt="" width={16} height={16} />
+        {skinCost} / 번 · 스킨
+        <span>
+          {skinsLeft === 0
+            ? '모든 스킨을 가졌습니다'
+            : skinShort
+              ? `크리스탈 ${skinShort}개 더 필요합니다`
+              : `남은 스킨 ${skinsLeft}개`}
+        </span>
+      </p>
+      <button
+        type="button"
+        className="village-button alt"
+        onClick={() => void pull('crystals')}
+        disabled={busy || skinShort > 0 || skinsLeft === 0}
+      >
+        크리스탈 뽑기
       </button>
       {error && <p className="village-note muted">{error}</p>}
       <h3 className="village-sub">가진 물건 {state.items.length ? `${state.items.length}종` : ''}</h3>
@@ -352,6 +416,15 @@ function ShopBody({ state, onPulled }: { state: VillageState; onPulled: (s: Vill
 }
 
 function GachaPrize({ result }: { result: GachaResult }) {
+  if (result.kind === 'skin') {
+    const [group, id] = result.id.split(':')
+    return (
+      <p className="village-prize">
+        {group === 'player' ? <PlayerFace skin={id} /> : <img src={buildingUrl('house', id)} alt="" />}
+        스킨 '{result.name}'{objectParticle(result.name)} 얻었습니다
+      </p>
+    )
+  }
   if (result.kind === 'item') {
     return (
       <p className="village-prize">
@@ -440,5 +513,85 @@ function BookDetail({ game, onBack }: { game: Game; onBack: () => void }) {
         <ArrowLeft size={14} aria-hidden="true" /> 책장으로
       </button>
     </>
+  )
+}
+
+/** 고양이 얼굴: 시트 첫 칸(아래를 보고 선 모습)을 2배로 */
+function PlayerFace({ skin }: { skin: string }) {
+  return <span className="village-face" style={{ backgroundImage: `url(${playerSheetUrl(skin)})` }} aria-hidden="true" />
+}
+
+type WardrobeProps = { state: VillageState; onClose: () => void; onChanged: (s: VillageState) => void }
+
+/** 옷장 창: 가진 스킨을 골라 바로 입힌다 */
+function WardrobePanel({ state, onClose, onChanged }: WardrobeProps) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const { players, roofs, owned } = state.wardrobe
+  const place = PLACES.wardrobe
+
+  async function put(target: 'player' | BuildingKind, skin: string) {
+    setBusy(true)
+    setError(null)
+    try {
+      onChanged(await wearSkin(target, skin))
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="village-panel wide" role="dialog" aria-label={place.name}>
+      <header>
+        <h2>{place.name}</h2>
+        <button type="button" className="village-close" onClick={onClose} aria-label="닫기" autoFocus>
+          <X size={16} aria-hidden="true" />
+        </button>
+      </header>
+      <p>{place.about}</p>
+      <h3 className="village-sub">
+        캐릭터 · {owned.player.length} / {Object.keys(players).length}벌
+      </h3>
+      <div className="village-swatches">
+        {owned.player.map((id) => (
+          <button
+            key={id}
+            type="button"
+            className="village-swatch"
+            aria-pressed={state.skins.player === id}
+            disabled={busy}
+            onClick={() => void put('player', id)}
+          >
+            <PlayerFace skin={id} />
+            {players[id]}
+          </button>
+        ))}
+      </div>
+      {(['house', 'shop', 'lab'] as const).map((kind) => (
+        <div key={kind}>
+          <h3 className="village-sub">
+            {BUILDING_NAMES[kind]} 지붕 · {owned.roof.length} / {Object.keys(roofs).length}색
+          </h3>
+          <div className="village-swatches">
+            {owned.roof.map((id) => (
+              <button
+                key={id}
+                type="button"
+                className="village-swatch"
+                aria-pressed={roofOf(state, kind) === id}
+                disabled={busy}
+                onClick={() => void put(kind, id)}
+              >
+                <img src={buildingUrl(kind, id)} alt="" />
+                {roofs[id]}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      {error && <p className="village-note muted">{error}</p>}
+    </section>
   )
 }

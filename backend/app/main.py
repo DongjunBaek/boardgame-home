@@ -440,6 +440,32 @@ def gacha_village() -> dict:
     return {"result": result, "village": village.view(state, _now())}
 
 
+@app.post("/api/village/gacha/skin")
+def skin_gacha_village() -> dict:
+    """크리스탈 뽑기 한 번: 아직 없는 스킨 하나. 결과는 서버가 정한다."""
+    with collection_lock():
+        try:
+            state, result = village.skin_gacha(_village(), secrets.SystemRandom())
+        except village.GachaError as e:
+            raise HTTPException(409, str(e)) from e
+        save_json(village.VILLAGE_FILE, state)
+    return {"result": result, "village": village.view(state, _now())}
+
+
+@app.put("/api/village/skins")
+def wear_village_skin(data: village.SkinIn) -> dict:
+    """가진 스킨을 캐릭터나 건물에 입힌다."""
+    with collection_lock():
+        before = _village()
+        try:
+            state = village.wear(before, data)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        if state != before:
+            save_json(village.VILLAGE_FILE, state)
+    return village.view(state, _now())
+
+
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 def api_not_found(path: str) -> JSONResponse:
     # 없는 API 주소가 화면(index.html)으로 빠지지 않게 막는다

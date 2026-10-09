@@ -121,13 +121,13 @@ describe('house.tmj (집 안 지도)', () => {
 
   it('has a bookshelf and an exit you walk down into', () => {
     const list = spots(map)
-    expect(list.map((s) => s.kind).sort()).toEqual(['bookshelf', 'exit'])
+    expect(list.map((s) => s.kind).sort()).toEqual(['bookshelf', 'exit', 'wardrobe'])
     expect(list.find((s) => s.kind === 'exit')?.facing).toBe('down')
     expect(list.find((s) => s.kind === 'bookshelf')?.facing).toBe('up')
     expect(map.backgroundcolor).toBeTruthy()
   })
 
-  it('can walk from the spawn to the bookshelf and the exit', () => {
+  it('can walk from the spawn to every spot in the house', () => {
     for (const s of spots(map)) expect(findPath(g, start, s.entry), s.kind).not.toBeNull()
   })
 })

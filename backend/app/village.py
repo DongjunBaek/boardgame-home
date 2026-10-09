@@ -66,6 +66,27 @@ GACHA_TABLE = [
 ]
 
 
+# 스킨: 캐릭터는 고양이 색, 건물은 지붕 색 (그림은 scripts/build_village_assets.py가 팔레트로 색만 바꿔 만든다)
+PLAYER_SKINS = {"default": "크림 고양이", "brown": "갈색 고양이", "gray": "회색 고양이", "black": "까만 고양이"}
+ROOFS = {"wood": "나무 지붕", "rose": "장밋빛 지붕", "teal": "청록 지붕", "slate": "남색 지붕", "gold": "황금 지붕", "plum": "자두색 지붕"}
+BUILDINGS = ("house", "shop", "lab")
+# 건물마다 처음 지붕. 이 지붕들과 기본 고양이는 처음부터 가진 것으로 본다
+DEFAULT_ROOFS = {"house": "wood", "shop": "rose", "lab": "teal"}
+# 크리스탈 뽑기 (임시 숫자, docs/questions.md 31번): 아직 없는 스킨 중 하나가 같은 확률로 나온다
+SKIN_GACHA_COST = 3
+
+SkinTarget = Literal["player", "house", "shop", "lab"]
+
+
+class SkinIn(BaseModel):
+    """입힐 스킨. target이 player면 고양이 id, 건물이면 지붕 id"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    target: SkinTarget
+    skin: str
+
+
 class GachaError(Exception):
     """뽑을 수 없는 경우 (코인 모자람). 화면에 그대로 보여 줄 문장을 담는다."""
 
@@ -98,6 +119,8 @@ def default_state(now: datetime) -> dict:
         "last_harvest": now.isoformat(timespec="seconds"),
         "items": [],
         "skins": {"player": "default", "buildings": {}},
+        # 뽑기로 얻은 스킨 ("player:brown", "roof:slate"). 처음부터 가진 것은 넣지 않는다
+        "owned_skins": [],
         # 지도 위 자리. None이면 지도의 시작점(spawn)에 선다
         "player": None,
     }
@@ -152,7 +175,13 @@ def view(state: dict, now: datetime) -> dict:
         **state,
         "farm": farm(state, now),
         "lab": lab(state),
-        "shop": {"cost": GACHA_COST, "names": FURNITURE},
+        "shop": {"cost": GACHA_COST, "names": FURNITURE, "skin_cost": SKIN_GACHA_COST, "skins_left": len(missing_skins(state))},
+        "wardrobe": {
+            "players": PLAYER_SKINS,
+            "roofs": ROOFS,
+            "default_roofs": DEFAULT_ROOFS,
+            "owned": owned_skins(state),
+        },
         "server_time": now.isoformat(timespec="seconds"),
     }
 
@@ -222,4 +251,56 @@ def gacha(state: dict, rng: random.Random) -> tuple[dict, dict]:
     else:
         new[result["kind"]] += result["amount"]
     return new, result
+
+
+def owned_skins(state: dict) -> dict:
+    """가진 스킨: {"player": [고양이 id], "roof": [지붕 id]} (처음부터 가진 것 포함, 목록 순서대로)"""
+    got = set(state.get("owned_skins") or [])
+    base_roofs = set(DEFAULT_ROOFS.values())
+    return {
+        "player": [k for k in PLAYER_SKINS if k == "default" or f"player:{k}" in got],
+        "roof": [k for k in ROOFS if k in base_roofs or f"roof:{k}" in got],
+    }
+
+
+def missing_skins(state: dict) -> list[str]:
+    """아직 없는 스킨 ("player:brown" 꼴)"""
+    owned = owned_skins(state)
+    return [f"player:{k}" for k in PLAYER_SKINS if k not in owned["player"]] + [
+        f"roof:{k}" for k in ROOFS if k not in owned["roof"]
+    ]
+
+
+def skin_name(skin_id: str) -> str:
+    group, key = skin_id.split(":")
+    return (PLAYER_SKINS if group == "player" else ROOFS)[key]
+
+
+def skin_gacha(state: dict, rng: random.Random) -> tuple[dict, dict]:
+    """크리스탈을 내고 아직 없는 스킨 하나를 얻는다. (새 상태, {"kind": "skin", "id", "name"})"""
+    left = missing_skins(state)
+    if not left:
+        raise GachaError("모든 스킨을 이미 가졌습니다")
+    if state["crystals"] < SKIN_GACHA_COST:
+        raise GachaError(f"크리스탈이 모자랍니다 (필요 {SKIN_GACHA_COST}, 가진 크리스탈 {state['crystals']})")
+    skin_id = rng.choice(left)
+    new = copy.deepcopy(state)
+    new["crystals"] -= SKIN_GACHA_COST
+    new["owned_skins"] = [*new.get("owned_skins", []), skin_id]
+    return new, {"kind": "skin", "id": skin_id, "name": skin_name(skin_id)}
+
+
+def wear(state: dict, data: SkinIn) -> dict:
+    """가진 스킨을 입힌다. 없거나 모르는 스킨이면 ValueError."""
+    owned = owned_skins(state)
+    new = copy.deepcopy(state)
+    if data.target == "player":
+        if data.skin not in owned["player"]:
+            raise ValueError(f"가지지 않은 캐릭터 스킨입니다: {data.skin}")
+        new["skins"]["player"] = data.skin
+    else:
+        if data.skin not in owned["roof"]:
+            raise ValueError(f"가지지 않은 지붕입니다: {data.skin}")
+        new["skins"]["buildings"] = {**new["skins"].get("buildings", {}), data.target: data.skin}
+    return new
 

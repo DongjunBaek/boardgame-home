@@ -38,6 +38,10 @@ export type VillageScene = {
   setCrop: (level: number, stage: number) => void
   /** 책장(kind=bookshelf)에 책 등을 꽂는다. 색 하나가 책 한 권. 자리가 모자라면 앞에서부터만 */
   setBooks: (colors: string[]) => void
+  /** 캐릭터 그림을 바꾼다 (같은 칸 배치의 다른 시트) */
+  setPlayerSheet: (url: string) => Promise<void>
+  /** 건물(kind) 그림을 바꾼다. 이 지도에 그 건물이 없으면 아무것도 하지 않는다 */
+  setBuildingImage: (kind: string, url: string) => Promise<void>
   player: () => PlayerSpot
   destroy: () => void
 }
@@ -138,6 +142,8 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
   const world = new Container()
   app.stage.addChild(world)
 
+  /** 건물 그림 (kind → 스프라이트). 스킨을 입힐 때 그림만 바꾼다 */
+  const buildingSprites = new Map<string, Sprite>()
   /** 책장 그림이 놓인 자리 (책 등을 그 위에 그린다) */
   let shelfAt: { x: number; y: number } | null = null
   const books = new Graphics()
@@ -173,7 +179,9 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
         // 그림 타일 오브젝트는 (x, y)가 왼쪽 아래 모서리다
         sprite.position.set(o.x, o.y - o.height)
         box.addChild(sprite)
-        if (prop<string>(o, 'kind') === 'bookshelf') shelfAt = { x: o.x, y: o.y - o.height }
+        const kind = prop<string>(o, 'kind')
+        if (kind === 'bookshelf') shelfAt = { x: o.x, y: o.y - o.height }
+        else if (kind) buildingSprites.set(kind, sprite)
       }
       if (shelfAt) box.addChild(books)
       world.addChild(box)
@@ -181,14 +189,16 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
   }
   world.addChild(actors, front)
 
-  // 캐릭터
-  const sheet = textures[playerUrl]
+  // 캐릭터: 시트를 바꾸면(스킨) 같은 칸 배치로 다시 자른다
   const frames: Record<Facing, Texture[]> = { down: [], up: [], left: [], right: [] }
-  for (const facing of Object.keys(ROWS) as Facing[]) {
-    for (let c = 0; c < 4; c++) {
-      frames[facing].push(new Texture({ source: sheet.source, frame: new Rectangle(c * FRAME, ROWS[facing] * FRAME, FRAME, FRAME) }))
+  function cutFrames(sheet: Texture) {
+    for (const facing of Object.keys(ROWS) as Facing[]) {
+      frames[facing] = [0, 1, 2, 3].map(
+        (c) => new Texture({ source: sheet.source, frame: new Rectangle(c * FRAME, ROWS[facing] * FRAME, FRAME, FRAME) }),
+      )
     }
   }
+  cutFrames(textures[playerUrl])
   const grid = collisionGrid(map)
   const places = spots(map)
   const door = opts.startAt ? places.find((p) => p.kind === opts.startAt) : undefined
@@ -358,6 +368,13 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
       if (p) path = []
     },
     player: snapshot,
+    async setPlayerSheet(url) {
+      cutFrames(await Assets.load<Texture>(new URL(url, window.location.href).href))
+    },
+    async setBuildingImage(kind, url) {
+      const sprite = buildingSprites.get(kind)
+      if (sprite) sprite.texture = await Assets.load<Texture>(new URL(url, window.location.href).href)
+    },
     setBooks(colors) {
       books.clear()
       if (!shelfAt) return

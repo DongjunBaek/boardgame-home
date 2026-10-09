@@ -9,7 +9,6 @@
 실행: python scripts/build_village_assets.py  (Pillow가 필요하다: pip install pillow. 서버 .venv에는 넣지 않는다)
 """
 import json
-import shutil
 import sys
 from pathlib import Path
 
@@ -38,11 +37,28 @@ TILESETS = {
 BERRY = ["#713970", "#8a4a70", "#a35b70", "#af6776", "#bd757e", "#d99a9a"]
 BLUEBERRY = ["#4c468b", "#555793", "#5f699c", "#7180b1", "#8599c7", "#92b2d4"]
 
-# 지붕 색 바꾸기: 원래 지붕 갈색 5단계 → 팔레트의 다른 5단계 (어두운 것부터)
+# 지붕 색 = 건물 스킨. 원래 지붕 갈색 5단계 → 팔레트의 다른 5단계 (어두운 것부터)
+# id는 서버(backend/app/village.py의 ROOFS)와 같아야 한다
 ROOF = ["#754c60", "#90625d", "#aa7959", "#b68962", "#c49a6c"]
-ROOF_SWAPS = {
-    "shop": ["#713970", "#8a4a70", "#a35b70", "#af6776", "#bd757e"],  # 장밋빛
-    "lab": ["#505e77", "#5f7a79", "#6e967c", "#82a884", "#97bb8e"],  # 청록빛
+ROOFS = {
+    "wood": ROOF,
+    "rose": ["#713970", "#8a4a70", "#a35b70", "#af6776", "#bd757e"],
+    "teal": ["#505e77", "#5f7a79", "#6e967c", "#82a884", "#97bb8e"],
+    "slate": ["#4c468b", "#555793", "#5f699c", "#7180b1", "#8599c7"],
+    "gold": ["#795e53", "#957a4b", "#b09643", "#bfa954", "#d4c169"],
+    "plum": ["#583f83", "#694a87", "#7b568c", "#90689f", "#a77bb3"],
+}
+# 건물마다 처음 지붕
+DEFAULT_ROOF = {"house": "wood", "shop": "rose", "lab": "teal"}
+BUILDING_SHAPE = {"house": (4, True), "shop": (3, False), "lab": (3, True)}  # (가운데 타일 수, 굴뚝)
+
+# 캐릭터 스킨: 몸 · 무늬 · 목걸이 색을 바꾼다 (외곽선·볼·방울은 그대로). id는 서버의 PLAYER_SKINS와 같다
+PLAYER_BASE = ["#f3f2c0", "#ddd5de", "#766daa"]
+PLAYER_SKINS = {
+    "default": PLAYER_BASE,
+    "brown": ["#dcb98a", "#c49a6c", "#67835c"],
+    "gray": ["#c1c8b9", "#9da89a", "#a35b70"],
+    "black": ["#6b7470", "#545959", "#eeba77"],
 }
 
 
@@ -295,11 +311,12 @@ def main() -> None:
     # 건물: 그림 모음 타일셋 (Tiled에서 그림째로 놓는다)
     buildings = OUT / "buildings"
     buildings.mkdir(exist_ok=True)
-    made = {
-        "house": building(4, chimney=True),
-        "shop": building(3, chimney=False, roof_colors=ROOF_SWAPS["shop"]),
-        "lab": building(3, chimney=True, roof_colors=ROOF_SWAPS["lab"]),
-    }
+    made = {}
+    for kind, (middle, chimney) in BUILDING_SHAPE.items():
+        for roof, colors in ROOFS.items():
+            im = building(middle, chimney=chimney, roof_colors=None if roof == "wood" else colors)
+            im.save(buildings / f"{kind}-{roof}.png")  # 스킨: 건물-지붕.png
+        made[kind] = building(middle, chimney=chimney, roof_colors=None if DEFAULT_ROOF[kind] == "wood" else ROOFS[DEFAULT_ROOF[kind]])
     tiles = []
     for i, (name, im) in enumerate(made.items()):
         im.save(buildings / f"{name}.png")
@@ -315,7 +332,9 @@ def main() -> None:
     # 캐릭터: 48×48 칸, 4줄(아래·위·왼쪽·오른쪽) × 4칸(서 있기 2 + 걷기 2)
     sprites = OUT / "sprites"
     sprites.mkdir(exist_ok=True)
-    shutil.copyfile(SRC / "Characters" / "Basic Charakter Spritesheet.png", sprites / "player-default.png")
+    sheet = src("Characters/Basic Charakter Spritesheet.png")
+    for skin, colors in PLAYER_SKINS.items():
+        (sheet if skin == "default" else recolor(sheet, PLAYER_BASE, colors)).save(sprites / f"player-{skin}.png")
     # 집 안 가구: 그림 모음 타일셋 (뽑기 가구 그림 + 책장). 지도에 그림째로 놓는다
     items = OUT / "items"
     items.mkdir(exist_ok=True)

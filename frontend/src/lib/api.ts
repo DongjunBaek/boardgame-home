@@ -2,7 +2,7 @@
 import type { Club, Member, MemberInput, Payment, PaymentInput, Tier, TierInput } from './club'
 import type { EntryInput, LedgerEntry } from './ledger'
 import type { PlayerSpot } from './village/scene'
-import type { GachaResult, MapName, VillageState } from './village/state'
+import type { BuildingKind, GachaResult, MapName, VillageState } from './village/state'
 import type { ExcelPreview, ExcelReport, Game, GameInput, Store, StoreInput } from './types'
 
 export type Health = { status: string; data_dir: string }
@@ -111,6 +111,13 @@ export const researchVillage = () =>
 
 /** 상점 뽑기 한 번. 결과는 서버가 정한다. 코인이 모자라면 이유를 담은 오류 */
 export const gachaVillage = () => request<{ result: GachaResult; village: VillageState }>('POST', '/village/gacha')
+
+/** 크리스탈 뽑기 한 번: 아직 없는 스킨 하나 */
+export const skinGachaVillage = () => request<{ result: GachaResult; village: VillageState }>('POST', '/village/gacha/skin')
+
+/** 가진 스킨 입히기. target: player(고양이) 또는 house·shop·lab(지붕) */
+export const wearSkin = (target: 'player' | BuildingKind, skin: string) =>
+  request<VillageState>('PUT', '/village/skins', { target, skin })
 
 /** 화면을 떠날 때: 페이지가 닫혀도 요청이 끝까지 가도록 keepalive로 보낸다 */
 export function saveVillagePlayerOnLeave(map: MapName, spot: PlayerSpot) {

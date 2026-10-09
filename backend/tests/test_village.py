@@ -14,9 +14,10 @@ def test_first_get_creates_default_state(isolated_data_dir):
     state = client.get("/api/village").json()
     assert state["coins"] == 0 and state["crystals"] == 0 and state["crop_level"] == 1
     assert state["player"] is None and state["skins"] == {"player": "default", "buildings": {}}
+    assert state["owned_skins"] == []
     saved = json.loads((isolated_data_dir / village.VILLAGE_FILE).read_text(encoding="utf-8"))
     # 파일에는 상태만, 화면에는 밭 계산·다음 연구·뽑기 정보·서버 시각을 더해 보낸다
-    assert saved == {k: v for k, v in state.items() if k not in ("farm", "lab", "shop", "server_time")}
+    assert saved == {k: v for k, v in state.items() if k not in ("farm", "lab", "shop", "wardrobe", "server_time")}
     # 두 번째로 읽어도 처음 만든 시각이 그대로다
     assert client.get("/api/village").json()["last_harvest"] == state["last_harvest"]
 
@@ -242,3 +243,78 @@ def test_gacha_api(isolated_data_dir, monkeypatch):
     body = client.post("/api/village/gacha").json()
     assert body["result"]["kind"] == "item"
     assert body["village"]["coins"] == 20 and body["village"]["items"][0]["count"] == 1
+
+
+# ---------- 스킨 ----------
+
+
+def test_every_skin_has_a_picture():
+    pub = ROOT / "frontend" / "public" / "village"
+    missing = [k for k in village.PLAYER_SKINS if not (pub / "sprites" / f"player-{k}.png").is_file()]
+    missing += [f"{b}-{r}" for b in village.BUILDINGS for r in village.ROOFS if not (pub / "buildings" / f"{b}-{r}.png").is_file()]
+    assert missing == []
+
+
+def test_owned_skins_start_with_defaults():
+    s = state_at(T0)
+    assert village.owned_skins(s) == {"player": ["default"], "roof": ["wood", "rose", "teal"]}
+    assert village.missing_skins(s) == ["player:brown", "player:gray", "player:black", "roof:slate", "roof:gold", "roof:plum"]
+
+
+def test_skin_gacha_gives_a_missing_skin_until_all_owned():
+    s = state_at(T0)
+    s["crystals"] = 3 * 6 + 1
+    for _ in range(6):
+        s, r = village.skin_gacha(s, random.Random(7))
+        assert r["kind"] == "skin" and r["name"] == village.skin_name(r["id"])
+    assert village.missing_skins(s) == [] and s["crystals"] == 1
+    try:
+        village.skin_gacha({**s, "crystals": 99}, random.Random(1))
+    except village.GachaError as e:
+        assert "이미 가졌습니다" in str(e)
+    else:
+        raise AssertionError("다 가졌으면 실패해야 한다")
+
+
+def test_skin_gacha_needs_crystals():
+    try:
+        village.skin_gacha(state_at(T0), random.Random(1))
+    except village.GachaError as e:
+        assert "필요 3" in str(e)
+    else:
+        raise AssertionError("크리스탈이 모자라면 실패해야 한다")
+
+
+def test_wear_only_owned_skins():
+    s = state_at(T0)
+    worn = village.wear(s, village.SkinIn(target="shop", skin="wood"))
+    assert worn["skins"]["buildings"] == {"shop": "wood"}
+    try:
+        village.wear(s, village.SkinIn(target="player", skin="brown"))
+    except ValueError as e:
+        assert "가지지 않은" in str(e)
+    else:
+        raise AssertionError("없는 스킨은 입힐 수 없어야 한다")
+    s["owned_skins"] = ["player:brown"]
+    assert village.wear(s, village.SkinIn(target="player", skin="brown"))["skins"]["player"] == "brown"
+
+
+def test_skin_api(isolated_data_dir, monkeypatch):
+    from backend.app import main
+
+    wardrobe = client.get("/api/village").json()["wardrobe"]
+    assert wardrobe["owned"]["roof"] == ["wood", "rose", "teal"] and wardrobe["players"]["default"] == "크림 고양이"
+    assert client.post("/api/village/gacha/skin").status_code == 409
+    assert client.put("/api/village/skins", json={"target": "lab", "skin": "plum"}).status_code == 422
+    assert client.put("/api/village/skins", json={"target": "roof", "skin": "wood"}).status_code == 422
+
+    path = isolated_data_dir / village.VILLAGE_FILE
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    path.write_text(json.dumps({**saved, "crystals": 5}), encoding="utf-8")
+    monkeypatch.setattr(main.secrets, "SystemRandom", lambda: FixedRng({}))
+    body = client.post("/api/village/gacha/skin").json()
+    assert body["result"] == {"kind": "skin", "id": "player:brown", "name": "갈색 고양이"}
+    assert body["village"]["crystals"] == 2 and body["village"]["shop"]["skins_left"] == 5
+    worn = client.put("/api/village/skins", json={"target": "player", "skin": "brown"}).json()
+    assert worn["skins"]["player"] == "brown"
+
