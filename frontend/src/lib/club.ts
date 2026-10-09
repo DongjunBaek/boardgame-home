@@ -149,3 +149,25 @@ export const removePayment = (payments: readonly Payment[], memberId: string, mo
 
 /** "2026-10" → "10월" */
 export const monthLabel = (month: string) => `${Number(month.slice(5))}월`
+
+export type TierTab = { key: string; label: string; count: number }
+
+/** 구분 탭: 전체 + 회원이 있는 구분 (구분 순서대로). 지금 고른 구분은 0명이어도 남긴다 */
+export function tierTabs(club: Club, selected = ''): TierTab[] {
+  const counts = new Map<string, number>()
+  for (const m of club.members) counts.set(m.tier_id, (counts.get(m.tier_id) ?? 0) + 1)
+  return [
+    { key: '', label: '전체', count: club.members.length },
+    ...club.tiers
+      .filter((t) => (counts.get(t.id) ?? 0) > 0 || t.id === selected)
+      .map((t) => ({ key: t.id, label: t.name, count: counts.get(t.id) ?? 0 })),
+  ]
+}
+
+/** 고른 구분의 회원만 남긴 장부 (''이면 그대로). 요약·현황표·명단이 모두 이것을 쓴다 */
+export function filterByTier(club: Club, tierId: string): Club {
+  if (!tierId) return club
+  const members = club.members.filter((m) => m.tier_id === tierId)
+  const ids = new Set(members.map((m) => m.id))
+  return { ...club, members, payments: club.payments.filter((p) => ids.has(p.member_id)) }
+}

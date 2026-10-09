@@ -1536,6 +1536,44 @@ label.checks {
   gap: 8px;
 }
 
+.tab-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 보기 바꾸기 (현황표 / 회원): 작은 붙은 단추 */
+.seg {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--hover);
+  border-radius: var(--radius-sm);
+}
+
+.seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  font-size: 13px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.seg button:hover {
+  color: var(--text);
+}
+
+.seg button[aria-pressed='true'] {
+  color: var(--text);
+  background: var(--raised);
+  box-shadow: var(--shadow-sm);
+}
+
 .year-pick {
   display: flex;
   align-items: center;

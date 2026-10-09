@@ -1,4 +1,4 @@
-import { Check, ChevronLeft, ChevronRight, Plus, Settings2, UserPlus } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Grid3x3, Plus, Settings2, UserPlus, Users } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import MemberDialog from '../components/club/MemberDialog'
 import PaymentDialog from '../components/club/PaymentDialog'
@@ -7,6 +7,7 @@ import Toast, { type Notice } from '../components/Toast'
 import { fetchClub } from '../lib/api'
 import {
   clubSummary,
+  filterByTier,
   findPayment,
   memberYear,
   membersInYear,
@@ -17,6 +18,7 @@ import {
   removePayment,
   sortMembers,
   STATUS_LABEL,
+  tierTabs,
   yearMonths,
   type CellState,
   type Club,
@@ -44,6 +46,8 @@ export default function ClubDuesPage({ notice, notify, onCloseNotice }: Props) {
   const [current] = useState(() => monthOf(new Date()))
   const [load, setLoad] = useState<Load>({ kind: 'loading' })
   const [tab, setTab] = useState<Tab>('grid')
+  /** 구분 탭: 고른 구분의 회원만 본다. ''이면 전체 */
+  const [tierFilter, setTierFilter] = useState('')
   const [year, setYear] = useState(() => Number(current.slice(0, 4)))
   const [paymentTarget, setPaymentTarget] = useState<PaymentTarget | null>(null)
   const [memberDialog, setMemberDialog] = useState<Member | 'new' | null>(null)
@@ -55,10 +59,12 @@ export default function ClubDuesPage({ notice, notify, onCloseNotice }: Props) {
       .catch((e: Error) => setLoad({ kind: 'error', message: e.message }))
   }, [])
 
-  const club = load.kind === 'ok' ? load.club : null
+  const fullClub = load.kind === 'ok' ? load.club : null
+  const club = useMemo(() => (fullClub ? filterByTier(fullClub, tierFilter) : null), [fullClub, tierFilter])
+  const tabs = useMemo(() => (fullClub ? tierTabs(fullClub, tierFilter) : []), [fullClub, tierFilter])
   const update = (fn: (c: Club) => Club) => setLoad((l) => (l.kind === 'ok' ? { kind: 'ok', club: fn(l.club) } : l))
 
-  const tierOf = useMemo(() => new Map(club?.tiers.map((t) => [t.id, t])), [club])
+  const tierOf = useMemo(() => new Map(fullClub?.tiers.map((t) => [t.id, t])), [fullClub])
   const index = useMemo(() => paymentIndex(club?.payments ?? []), [club])
   const rows = useMemo(() => (club ? membersInYear(club, year) : []), [club, year])
   const summary = useMemo(() => (club ? clubSummary(club, year, current) : null), [club, year, current])
@@ -68,7 +74,7 @@ export default function ClubDuesPage({ notice, notify, onCloseNotice }: Props) {
     <>
       <header className="page-head">
         <h1>동아리 회비 관리</h1>
-        {summary && club && club.members.length > 0 && (
+        {summary && club && fullClub && fullClub.members.length > 0 && (
           <p className="summary">
             <span className="summary-pill">
               {monthLabel(current)} 납부{' '}
@@ -86,7 +92,7 @@ export default function ClubDuesPage({ notice, notify, onCloseNotice }: Props) {
             </span>
           </p>
         )}
-        {club && (
+        {fullClub && (
           <div className="page-actions">
             <button type="button" className="primary with-icon" onClick={() => setMemberDialog('new')}>
               <UserPlus size={15} aria-hidden="true" />
@@ -102,28 +108,46 @@ export default function ClubDuesPage({ notice, notify, onCloseNotice }: Props) {
         {club && (
           <>
             <div className="tab-row">
-              <div className="genre-tabs" role="tablist" aria-label="회비 화면">
-                <button type="button" role="tab" aria-selected={tab === 'grid'} className={`genre-tab ${tab === 'grid' ? 'active' : ''}`} onClick={() => setTab('grid')}>
-                  납부 현황표
-                </button>
-                <button type="button" role="tab" aria-selected={tab === 'members'} className={`genre-tab ${tab === 'members' ? 'active' : ''}`} onClick={() => setTab('members')}>
-                  회원 <span className="tab-count">{club.members.length}</span>
-                </button>
-              </div>
-              {tab === 'grid' && (
-                <div className="year-pick">
-                  <button type="button" className="icon-btn" aria-label="지난해" onClick={() => setYear((y) => y - 1)}>
-                    <ChevronLeft size={16} aria-hidden="true" />
+              <div className="genre-tabs" role="tablist" aria-label="회비 구분">
+                {tabs.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={tierFilter === t.key}
+                    className={`genre-tab ${tierFilter === t.key ? 'active' : ''}`}
+                    onClick={() => setTierFilter(t.key)}
+                  >
+                    {t.label} <span className="tab-count">{t.count}</span>
                   </button>
-                  <span>{year}년</span>
-                  <button type="button" className="icon-btn" aria-label="다음 해" onClick={() => setYear((y) => y + 1)}>
-                    <ChevronRight size={16} aria-hidden="true" />
+                ))}
+              </div>
+              <div className="tab-tools">
+                <div className="seg" role="group" aria-label="보기">
+                  <button type="button" aria-pressed={tab === 'grid'} onClick={() => setTab('grid')}>
+                    <Grid3x3 size={14} aria-hidden="true" />
+                    현황표
+                  </button>
+                  <button type="button" aria-pressed={tab === 'members'} onClick={() => setTab('members')}>
+                    <Users size={14} aria-hidden="true" />
+                    회원
                   </button>
                 </div>
-              )}
+                {tab === 'grid' && (
+                  <div className="year-pick">
+                    <button type="button" className="icon-btn" aria-label="지난해" onClick={() => setYear((y) => y - 1)}>
+                      <ChevronLeft size={16} aria-hidden="true" />
+                    </button>
+                    <span>{year}년</span>
+                    <button type="button" className="icon-btn" aria-label="다음 해" onClick={() => setYear((y) => y + 1)}>
+                      <ChevronRight size={16} aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {club.members.length === 0 ? (
+            {fullClub!.members.length === 0 ? (
               <div className="placeholder">
                 <UserPlus size={28} aria-hidden="true" />
                 <p>회원을 추가하면 납부 현황표가 생깁니다</p>
@@ -192,7 +216,7 @@ export default function ClubDuesPage({ notice, notify, onCloseNotice }: Props) {
                 </table>
               </div>
             ) : (
-              <MembersTab club={club} onOpenMember={setMemberDialog} onOpenTier={setTierDialog} />
+              <MembersTab club={fullClub!} members={club.members} onOpenMember={setMemberDialog} onOpenTier={setTierDialog} />
             )}
           </>
         )}
@@ -200,7 +224,7 @@ export default function ClubDuesPage({ notice, notify, onCloseNotice }: Props) {
 
       <div className="dock dock-toast">{notice && <Toast notice={notice} onClose={onCloseNotice} />}</div>
 
-      {club && paymentTarget && (
+      {fullClub && paymentTarget && (
         <PaymentDialog
           member={paymentTarget.member}
           tier={tierOf.get(paymentTarget.member.tier_id)}
@@ -224,10 +248,10 @@ export default function ClubDuesPage({ notice, notify, onCloseNotice }: Props) {
         />
       )}
 
-      {club && memberDialog && (
+      {fullClub && memberDialog && (
         <MemberDialog
           member={memberDialog === 'new' ? null : memberDialog}
-          tiers={club.tiers}
+          tiers={fullClub.tiers}
           currentMonth={current}
           onClose={() => setMemberDialog(null)}
           onSaved={(member, isNew) => {
@@ -243,7 +267,7 @@ export default function ClubDuesPage({ notice, notify, onCloseNotice }: Props) {
         />
       )}
 
-      {club && tierDialog && (
+      {fullClub && tierDialog && (
         <TierDialog
           tier={tierDialog === 'new' ? null : tierDialog}
           onClose={() => setTierDialog(null)}
@@ -254,6 +278,7 @@ export default function ClubDuesPage({ notice, notify, onCloseNotice }: Props) {
           }}
           onDeleted={(tier) => {
             update((c) => ({ ...c, tiers: c.tiers.filter((t) => t.id !== tier.id) }))
+            if (tierFilter === tier.id) setTierFilter('')
             setTierDialog(null)
             notify({ kind: 'ok', text: `구분 '${tier.name}' 지웠습니다` })
           }}
@@ -285,10 +310,14 @@ function DuesCell({ state, title, onClick }: { state: CellState; title: string; 
 
 function MembersTab({
   club,
+  members,
   onOpenMember,
   onOpenTier,
 }: {
+  /** 구분 상자는 전체 장부로 센다 */
   club: Club
+  /** 표에 보일 회원 (구분 탭으로 거른 것) */
+  members: Member[]
   onOpenMember: (m: Member) => void
   onOpenTier: (t: Tier | 'new') => void
 }) {
@@ -310,7 +339,7 @@ function MembersTab({
             </tr>
           </thead>
           <tbody>
-            {sortMembers(club.members).map((m) => (
+            {sortMembers(members).map((m) => (
               <tr key={m.id} className={m.status === 'active' ? '' : 'is-inactive'}>
                 <td className="col-name">
                   <button type="button" className="cell-link" onClick={() => onOpenMember(m)}>

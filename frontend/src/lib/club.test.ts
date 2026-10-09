@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest'
 import {
   cellState,
   clubSummary,
+  filterByTier,
   memberYear,
   membersInYear,
   mergePayments,
   paymentIndex,
   removePayment,
   sortMembers,
+  tierTabs,
   yearMonths,
   type Club,
   type Member,
@@ -123,5 +125,26 @@ describe('mergePayments / removePayment', () => {
   it('yearMonths', () => {
     expect(yearMonths(2026)[0]).toBe('2026-01')
     expect(yearMonths(2026)[11]).toBe('2026-12')
+  })
+})
+
+describe('tierTabs / filterByTier', () => {
+  const club: Club = {
+    tiers: [full, half, free],
+    members: [member('a'), member('b'), member('c', { tier_id: 't2' })],
+    payments: [paid('a', '2026-10'), paid('c', '2026-10', 5000)],
+  }
+
+  it('전체 + 회원이 있는 구분만, 고른 구분은 0명이어도 남김', () => {
+    expect(tierTabs(club).map((t) => `${t.label}${t.count}`)).toEqual(['전체3', '정회원2', '준회원1'])
+    expect(tierTabs(club, 't3').map((t) => t.label)).toEqual(['전체', '정회원', '준회원', '면제'])
+  })
+
+  it('고른 구분 회원과 그 기록만 남고, 요약도 그 안에서 계산', () => {
+    const only = filterByTier(club, 't2')
+    expect(only.members.map((m) => m.id)).toEqual(['c'])
+    expect(only.payments).toHaveLength(1)
+    expect(clubSummary(only, 2026, NOW).collectedThisMonth).toBe(5000)
+    expect(filterByTier(club, '')).toBe(club)
   })
 })
