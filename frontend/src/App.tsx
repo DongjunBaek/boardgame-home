@@ -1,19 +1,19 @@
-import { CircleAlert, CircleCheck, Dices, FileDown, FileUp, Plus, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Navigate, Route, Routes, useNavigate } from 'react-router'
+import AppBar from './components/AppBar'
 import ExcelImportDialog from './components/ExcelImportDialog'
-import FilterBar from './components/FilterBar'
-import GenreTabs from './components/GenreTabs'
 import GameDialog from './components/GameDialog'
-import GameTable from './components/GameTable'
+import SideNav from './components/SideNav'
 import StoreDialog from './components/StoreDialog'
-import StoreSidebar from './components/StoreSidebar'
-import { deleteStore, EXCEL_DOWNLOAD_URL, fetchGames, fetchStores, updateGame } from './lib/api'
+import { deleteStore, fetchGames, fetchStores, updateGame } from './lib/api'
 import { applyGamePatch, currentValues, EMPTY_FILTERS, filterGames, genreTabs, publisherOptions, sortGames, summarize, type Sort, type SortKey } from './lib/games'
 import { groupNames, groupStores, storeKey } from './lib/stores'
+import { NAV, PLACEHOLDER_PAGES } from './lib/nav'
 import type { ExcelReport, Game, GameInput, Store } from './lib/types'
+import GamesPage, { type Notice } from './pages/GamesPage'
+import PlaceholderPage from './pages/PlaceholderPage'
 
 type Load = { kind: 'loading' } | { kind: 'ok' } | { kind: 'error'; message: string }
-type Notice = { kind: 'ok' | 'error'; text: string }
 /** 열린 상세 창: 게임 하나, 새 게임('new'), 또는 닫힘(null) */
 type DialogTarget = Game | 'new' | null
 type StoreDialogTarget = Store | 'new' | null
@@ -33,6 +33,7 @@ export default function App() {
   const [storesError, setStoresError] = useState<string | null>(null)
   const [storeDialog, setStoreDialog] = useState<StoreDialogTarget>(null)
   const noticeTimer = useRef<number | undefined>(undefined)
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchGames()
@@ -107,109 +108,56 @@ export default function App() {
     }
   }
 
-  const tabLabel = tabs.find((t) => t.key === filters.genre)?.label ?? '전체'
-
   return (
     <div className="shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true">
-            <Dices size={18} />
-          </span>
-          <span className="brand-name">내 보드게임</span>
-        </div>
+      <AppBar />
 
-        {load.kind === 'ok' && (
-          <button type="button" className="new-btn" onClick={() => setDialog('new')}>
-            <Plus size={16} aria-hidden="true" />
-            게임 추가
-          </button>
-        )}
-
-        <div className="sidebar-scroll">
-          <StoreSidebar
-            groups={storeGroups}
-            error={storesError}
-            active={filters.store}
-            onPick={(store) => setFilters((f) => ({ ...f, store }))}
-            onAdd={() => setStoreDialog('new')}
-            onEdit={setStoreDialog}
-            onDelete={removeStore}
-          />
-        </div>
-
-        {load.kind === 'ok' && (
-          <div className="sidebar-foot">
-            <a className="side-item" href={EXCEL_DOWNLOAD_URL} download>
-              <FileDown size={16} aria-hidden="true" />
-              엑셀 내려받기
-            </a>
-            <label className="side-item">
-              <FileUp size={16} aria-hidden="true" />
-              엑셀 올리기
-              <input
-                type="file"
-                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                hidden
-                onChange={(e) => {
-                  setUpload(e.target.files?.[0] ?? null)
-                  e.target.value = '' // 같은 파일을 다시 골라도 올라가게
-                }}
-              />
-            </label>
-          </div>
-        )}
-      </aside>
+      <SideNav
+        stores={{
+          groups: storeGroups,
+          error: storesError,
+          active: filters.store,
+          onPick: (store) => {
+            setFilters((f) => ({ ...f, store }))
+            navigate(NAV.games.path)
+          },
+          onAdd: () => setStoreDialog('new'),
+          onEdit: setStoreDialog,
+          onDelete: removeStore,
+        }}
+      />
 
       <main className="main">
-        <header className="topbar">
-          <h1>{tabLabel === '전체' ? '전체 게임' : tabLabel}</h1>
-          {load.kind === 'ok' && (
-            <p className="summary">
-              <span className="summary-pill">
-                안 해봄 <b>{summary.unplayed}</b>
-              </span>
-            </p>
-          )}
-        </header>
-
-        <div className="content">
-          {load.kind === 'loading' && <p className="status">불러오는 중…</p>}
-          {load.kind === 'error' && <p className="status bad">목록을 불러오지 못했습니다 ({load.message})</p>}
-          {load.kind === 'ok' && (
-            <>
-              <GenreTabs tabs={tabs} value={filters.genre} onChange={(genre) => setFilters((f) => ({ ...f, genre }))} />
-              <GameTable
+        <Routes>
+          <Route
+            path={NAV.games.path}
+            element={
+              <GamesPage
+                ready={load.kind === 'ok'}
+                loadError={load.kind === 'error' ? load.message : null}
                 games={shown}
+                filters={filters}
                 sort={sort}
+                tabs={tabs}
+                publishers={publishers}
+                unplayed={summary.unplayed}
+                storeName={activeStore?.name}
+                notice={notice}
+                onFilters={setFilters}
                 onSort={onSort}
                 onOpen={setDialog}
                 onEdit={(g, patch) => void editInline(g, patch)}
+                onAdd={() => setDialog('new')}
+                onUpload={setUpload}
+                onCloseNotice={() => setNotice(null)}
               />
-            </>
-          )}
-        </div>
-
-        {load.kind === 'ok' && (
-          <div className="dock">
-            {notice && (
-              <div className={`notice ${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
-                {notice.kind === 'ok' ? <CircleCheck size={16} aria-hidden="true" /> : <CircleAlert size={16} aria-hidden="true" />}
-                <span>{notice.text}</span>
-                <button type="button" className="icon-btn" aria-label="알림 닫기" onClick={() => setNotice(null)}>
-                  <X size={14} aria-hidden="true" />
-                </button>
-              </div>
-            )}
-            <FilterBar
-              filters={filters}
-              publishers={publishers}
-              storeName={activeStore?.name}
-              shown={shown.length}
-              onChange={setFilters}
-            />
-          </div>
-        )}
+            }
+          />
+          {PLACEHOLDER_PAGES.map((item) => (
+            <Route key={item.path} path={item.path} element={<PlaceholderPage item={item} />} />
+          ))}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
 
       {storeDialog && stores && (

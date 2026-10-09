@@ -34,7 +34,7 @@ export default function StoreSidebar({ groups, error, active, onPick, onAdd, onE
   return (
     <section className="store-sidebar" aria-label="스토어 바로가기">
       <header className="store-head">
-        <h2>스토어</h2>
+        <h2>바로가기</h2>
         {groups && (
           <button
             type="button"
