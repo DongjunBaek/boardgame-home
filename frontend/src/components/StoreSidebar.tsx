@@ -1,3 +1,4 @@
+import { ExternalLink, Pencil, Plus, X } from 'lucide-react'
 import { useState } from 'react'
 import type { StoreGroup } from '../lib/stores'
 import type { Store } from '../lib/types'
@@ -31,7 +32,7 @@ export default function StoreSidebar({ groups, error, active, onPick, onAdd, onE
   }
 
   return (
-    <aside className="store-sidebar" aria-label="스토어 바로가기">
+    <section className="store-sidebar" aria-label="스토어 바로가기">
       <header className="store-head">
         <h2>스토어</h2>
         {groups && (
@@ -75,16 +76,14 @@ export default function StoreSidebar({ groups, error, active, onPick, onAdd, onE
                       <div className="store-main">
                         <a className="store-link" href={store.url} target="_blank" rel="noopener noreferrer" title={store.url}>
                           {store.name}
-                          <span className="store-ext" aria-hidden="true">
-                            ↗
-                          </span>
+                          <ExternalLink className="store-ext" size={11} aria-hidden="true" />
                         </a>
                         {store.memo && <span className="store-memo">{store.memo}</span>}
                       </div>
                       {editing ? (
                         <span className="store-tools">
                           <button type="button" className="icon-btn" aria-label={`${store.name} 고치기`} onClick={() => onEdit(store)}>
-                            ✎
+                            <Pencil size={13} aria-hidden="true" />
                           </button>
                           <button
                             type="button"
@@ -92,7 +91,7 @@ export default function StoreSidebar({ groups, error, active, onPick, onAdd, onE
                             aria-label={`${store.name} 지우기`}
                             onClick={() => setConfirmId(store.id)}
                           >
-                            ✕
+                            <X size={14} aria-hidden="true" />
                           </button>
                         </span>
                       ) : (
@@ -119,10 +118,10 @@ export default function StoreSidebar({ groups, error, active, onPick, onAdd, onE
 
       {editing && (
         <button type="button" className="store-add" onClick={onAdd}>
-          + 스토어 추가
+          <Plus size={14} aria-hidden="true" /> 스토어 추가
         </button>
       )}
       {groups && groups.length > 0 && !editing && <p className="store-hint">숫자: 판매 링크가 그 스토어인 내 게임 수 (누르면 거르기)</p>}
-    </aside>
+    </section>
   )
 }

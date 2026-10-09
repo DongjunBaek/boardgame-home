@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { createStore, updateStore } from '../lib/api'
@@ -70,7 +71,7 @@ export default function StoreDialog({ store, groups, defaultGroup = '', onClose,
         <header className="dialog-head">
           <h2 id="store-dialog-title">{store ? '스토어 고치기' : '스토어 추가'}</h2>
           <button type="button" className="icon-btn" aria-label="닫기" onClick={onClose} disabled={busy}>
-            ✕
+            <X size={18} aria-hidden="true" />
           </button>
         </header>
         <form

@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { formatMinutes, formatPlayers, formatPrice, parseMinutes, parsePlayerInput, parseText, parseWon, shortGenre } from '../lib/format'
 import type { Sort, SortKey } from '../lib/games'
@@ -46,7 +47,9 @@ export default function GameTable({ games, sort, onSort, onOpen, onEdit }: Props
                 >
                   <button type="button" className="sort-btn" onClick={() => onSort(c.key)}>
                     {c.label}
-                    <span className="sort-mark">{active ? (sort.dir === 'asc' ? '▲' : '▼') : ''}</span>
+                    <span className="sort-mark" aria-hidden="true">
+                      {active && (sort.dir === 'asc' ? <ChevronUp size={13} /> : <ChevronDown size={13} />)}
+                    </span>
                   </button>
                 </th>
               )

@@ -1,3 +1,4 @@
+import { CircleAlert, CircleCheck, Dices, FileDown, FileUp, Plus, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ExcelImportDialog from './components/ExcelImportDialog'
 import FilterBar from './components/FilterBar'
@@ -7,7 +8,7 @@ import GameTable from './components/GameTable'
 import StoreDialog from './components/StoreDialog'
 import StoreSidebar from './components/StoreSidebar'
 import { deleteStore, EXCEL_DOWNLOAD_URL, fetchGames, fetchStores, updateGame } from './lib/api'
-import { applyGamePatch, currentValues, EMPTY_FILTERS, filterGames, genreTabs, publisherOptions, isFiltered, sortGames, summarize, type Sort, type SortKey } from './lib/games'
+import { applyGamePatch, currentValues, EMPTY_FILTERS, filterGames, genreTabs, publisherOptions, sortGames, summarize, type Sort, type SortKey } from './lib/games'
 import { groupNames, groupStores, storeKey } from './lib/stores'
 import type { ExcelReport, Game, GameInput, Store } from './lib/types'
 
@@ -106,29 +107,45 @@ export default function App() {
     }
   }
 
+  const tabLabel = tabs.find((t) => t.key === filters.genre)?.label ?? '전체'
+
   return (
-    <div className="app">
-      <header className="app-header">
-        <div>
-          <h1>내 보드게임</h1>
-          {load.kind === 'ok' && (
-            <p className="summary">
-              총 <b>{summary.total}</b>개 · 안 해봄 {summary.unplayed}
-              {isFiltered(filters) && (
-                <span className="summary-filtered">
-                  {' '}
-                  → 거른 결과 <b>{shown.length}</b>개
-                </span>
-              )}
-            </p>
-          )}
+    <div className="shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true">
+            <Dices size={18} />
+          </span>
+          <span className="brand-name">내 보드게임</span>
         </div>
+
         {load.kind === 'ok' && (
-          <div className="header-actions">
-            <a className="btn" href={EXCEL_DOWNLOAD_URL} download>
+          <button type="button" className="new-btn" onClick={() => setDialog('new')}>
+            <Plus size={16} aria-hidden="true" />
+            게임 추가
+          </button>
+        )}
+
+        <div className="sidebar-scroll">
+          <StoreSidebar
+            groups={storeGroups}
+            error={storesError}
+            active={filters.store}
+            onPick={(store) => setFilters((f) => ({ ...f, store }))}
+            onAdd={() => setStoreDialog('new')}
+            onEdit={setStoreDialog}
+            onDelete={removeStore}
+          />
+        </div>
+
+        {load.kind === 'ok' && (
+          <div className="sidebar-foot">
+            <a className="side-item" href={EXCEL_DOWNLOAD_URL} download>
+              <FileDown size={16} aria-hidden="true" />
               엑셀 내려받기
             </a>
-            <label className="btn">
+            <label className="side-item">
+              <FileUp size={16} aria-hidden="true" />
               엑셀 올리기
               <input
                 type="file"
@@ -140,39 +157,31 @@ export default function App() {
                 }}
               />
             </label>
-            <button type="button" className="primary" onClick={() => setDialog('new')}>
-              + 게임 추가
-            </button>
           </div>
         )}
-      </header>
+      </aside>
 
-      {notice && (
-        <div className={`notice ${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
-          <span>{notice.text}</span>
-          <button type="button" className="icon-btn" aria-label="알림 닫기" onClick={() => setNotice(null)}>
-            ✕
-          </button>
-        </div>
-      )}
+      <main className="main">
+        <header className="topbar">
+          <h1>{tabLabel === '전체' ? '전체 게임' : tabLabel}</h1>
+          {load.kind === 'ok' && (
+            <p className="summary">
+              <span className="summary-pill">
+                총 <b>{summary.total}</b>
+              </span>
+              <span className="summary-pill">
+                안 해봄 <b>{summary.unplayed}</b>
+              </span>
+            </p>
+          )}
+        </header>
 
-      <div className="layout">
-        <StoreSidebar
-          groups={storeGroups}
-          error={storesError}
-          active={filters.store}
-          onPick={(store) => setFilters((f) => ({ ...f, store }))}
-          onAdd={() => setStoreDialog('new')}
-          onEdit={setStoreDialog}
-          onDelete={removeStore}
-        />
-        <main className="main">
+        <div className="content">
           {load.kind === 'loading' && <p className="status">불러오는 중…</p>}
           {load.kind === 'error' && <p className="status bad">목록을 불러오지 못했습니다 ({load.message})</p>}
           {load.kind === 'ok' && (
             <>
               <GenreTabs tabs={tabs} value={filters.genre} onChange={(genre) => setFilters((f) => ({ ...f, genre }))} />
-              <FilterBar filters={filters} publishers={publishers} storeName={activeStore?.name} onChange={setFilters} />
               <GameTable
                 games={shown}
                 sort={sort}
@@ -182,8 +191,29 @@ export default function App() {
               />
             </>
           )}
-        </main>
-      </div>
+        </div>
+
+        {load.kind === 'ok' && (
+          <div className="dock">
+            {notice && (
+              <div className={`notice ${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
+                {notice.kind === 'ok' ? <CircleCheck size={16} aria-hidden="true" /> : <CircleAlert size={16} aria-hidden="true" />}
+                <span>{notice.text}</span>
+                <button type="button" className="icon-btn" aria-label="알림 닫기" onClick={() => setNotice(null)}>
+                  <X size={14} aria-hidden="true" />
+                </button>
+              </div>
+            )}
+            <FilterBar
+              filters={filters}
+              publishers={publishers}
+              storeName={activeStore?.name}
+              shown={shown.length}
+              onChange={setFilters}
+            />
+          </div>
+        )}
+      </main>
 
       {storeDialog && stores && (
         <StoreDialog

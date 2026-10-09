@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { createGame, deleteGame, updateGame } from '../lib/api'
@@ -106,7 +107,7 @@ export default function GameDialog({ game, onClose, onSaved, onDeleted }: Props)
         <header className="dialog-head">
           <h2 id="dialog-title">{game ? game.title : '게임 추가'}</h2>
           <button type="button" className="icon-btn" aria-label="닫기" onClick={tryClose} disabled={busy}>
-            ✕
+            <X size={18} aria-hidden="true" />
           </button>
         </header>
 

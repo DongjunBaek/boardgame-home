@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { applyExcel, previewExcel } from '../lib/api'
@@ -55,7 +56,7 @@ export default function ExcelImportDialog({ file, onClose, onApplied }: Props) {
         <header className="dialog-head">
           <h2 id="excel-title">엑셀 올리기 미리보기</h2>
           <button type="button" className="icon-btn" aria-label="닫기" onClick={onClose}>
-            ✕
+            <X size={18} aria-hidden="true" />
           </button>
         </header>
 
