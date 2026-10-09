@@ -16,6 +16,7 @@ Assets -From : Sprout Lands -By : Cup Nooble
   - `buildings/*.png`: 나무집 지붕·벽·문·창 조각을 이어 붙여 만들었다. `shop`·`lab`은 지붕 색을 팩 팔레트 안의 다른 색으로 바꿨다.
   - `tilesets/collision.png`: 직접 만든 표시용 칸 (화면에는 그리지 않는다).
   - `icons/coin.png`, `icons/crystal.png`: 팩에 없어서 팩 팔레트 색으로 직접 찍었다.
+  - `items/bookshelf.png`: 팩에 없어서 서랍장 색으로 직접 그렸다.
   - `items/*.png`: `Basic Furniture.png`에서 가구를 하나씩 잘랐다.
   - `icons/chest-*.png`: `Chest.png`의 닫힌·열린 상자를 그림 있는 곳만 잘랐다.
   - `tilesets/crops.png` 3번째 줄: 2번째 줄 작물의 열매 색을 팩 팔레트의 파랑으로 바꿨다 (LV3 작물).

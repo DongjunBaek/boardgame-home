@@ -1,0 +1,383 @@
+{
+  "type": "tileset",
+  "version": "1.10",
+  "tiledversion": "1.11.0",
+  "name": "furniture",
+  "tilewidth": 64,
+  "tileheight": 32,
+  "columns": 0,
+  "tilecount": 28,
+  "margin": 0,
+  "spacing": 0,
+  "grid": {
+    "orientation": "orthogonal",
+    "width": 1,
+    "height": 1
+  },
+  "tiles": [
+    {
+      "id": 0,
+      "image": "../items/painting-flowers.png",
+      "imagewidth": 15,
+      "imageheight": 7,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "painting-flowers"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "image": "../items/painting-field.png",
+      "imagewidth": 11,
+      "imageheight": 7,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "painting-field"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "image": "../items/painting-night.png",
+      "imagewidth": 12,
+      "imageheight": 8,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "painting-night"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "image": "../items/pot-sunflower.png",
+      "imagewidth": 11,
+      "imageheight": 15,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "pot-sunflower"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "image": "../items/pot-sprout.png",
+      "imagewidth": 8,
+      "imageheight": 9,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "pot-sprout"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "image": "../items/pot-blue-flower.png",
+      "imagewidth": 7,
+      "imageheight": 12,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "pot-blue-flower"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "image": "../items/lamp-green.png",
+      "imagewidth": 10,
+      "imageheight": 11,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "lamp-green"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "image": "../items/lamp-blue.png",
+      "imagewidth": 10,
+      "imageheight": 11,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "lamp-blue"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "image": "../items/lamp-pink.png",
+      "imagewidth": 10,
+      "imageheight": 11,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "lamp-pink"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "image": "../items/bed-green.png",
+      "imagewidth": 14,
+      "imageheight": 22,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "bed-green"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "image": "../items/bed-blue.png",
+      "imagewidth": 14,
+      "imageheight": 22,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "bed-blue"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "image": "../items/bed-pink.png",
+      "imagewidth": 14,
+      "imageheight": 22,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "bed-pink"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "image": "../items/dresser.png",
+      "imagewidth": 14,
+      "imageheight": 16,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "dresser"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "image": "../items/table.png",
+      "imagewidth": 14,
+      "imageheight": 14,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "table"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "image": "../items/chair.png",
+      "imagewidth": 10,
+      "imageheight": 13,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "chair"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "image": "../items/cabinet.png",
+      "imagewidth": 10,
+      "imageheight": 13,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "cabinet"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "image": "../items/side-table.png",
+      "imagewidth": 10,
+      "imageheight": 10,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "side-table"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "image": "../items/stool.png",
+      "imagewidth": 10,
+      "imageheight": 9,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "stool"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "image": "../items/clock-cat.png",
+      "imagewidth": 13,
+      "imageheight": 15,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "clock-cat"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "image": "../items/clock-round.png",
+      "imagewidth": 13,
+      "imageheight": 13,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "clock-round"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "image": "../items/clock-small.png",
+      "imagewidth": 9,
+      "imageheight": 9,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "clock-small"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "image": "../items/rug-small-green.png",
+      "imagewidth": 16,
+      "imageheight": 13,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "rug-small-green"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "image": "../items/rug-small-pink.png",
+      "imagewidth": 16,
+      "imageheight": 13,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "rug-small-pink"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "image": "../items/rug-small-blue.png",
+      "imagewidth": 16,
+      "imageheight": 13,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "rug-small-blue"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "image": "../items/rug-green.png",
+      "imagewidth": 24,
+      "imageheight": 13,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "rug-green"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "image": "../items/rug-pink.png",
+      "imagewidth": 24,
+      "imageheight": 13,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "rug-pink"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "image": "../items/rug-blue.png",
+      "imagewidth": 24,
+      "imageheight": 13,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "rug-blue"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "image": "../items/bookshelf.png",
+      "imagewidth": 64,
+      "imageheight": 32,
+      "properties": [
+        {
+          "name": "item",
+          "type": "string",
+          "value": "bookshelf"
+        }
+      ]
+    }
+  ]
+}

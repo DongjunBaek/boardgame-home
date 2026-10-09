@@ -1,9 +1,10 @@
 // 마을 캔버스(PixiJS). 지도·캐릭터·걷기·카메라만 맡는다. 패널은 React(VillagePage)가 그린다.
-import { Application, Assets, Container, Rectangle, Sprite, Texture, TextureStyle, type Ticker } from 'pixi.js'
+import { Application, Assets, Container, Graphics, Rectangle, Sprite, Texture, TextureStyle, type Ticker } from 'pixi.js'
 import { findPath, moveFeet, nearestOpen } from './path'
 import {
   collisionGrid,
   isBlocked,
+  prop,
   resolveGid,
   spawnTile,
   spotAt,
@@ -24,6 +25,8 @@ export type SceneOptions = {
   playerSheetUrl: string
   /** 저장된 자리. 없으면 지도 시작점 */
   start: PlayerSpot | null
+  /** 이 곳(kind)의 문 앞에서 시작한다 (집에서 나왔을 때 등). start보다 먼저 본다 */
+  startAt?: string
   /** 건물 문 앞(들어가는 칸)에 닿았을 때 */
   onEnter: (kind: string, at: PlayerSpot) => void
 }
@@ -33,6 +36,8 @@ export type VillageScene = {
   setPaused: (paused: boolean) => void
   /** 밭 작물: 레벨(1~3)이 작물 종류(그림 줄), 단계(1~4)가 자란 정도. 'crops' 층의 모든 타일을 바꾼다 */
   setCrop: (level: number, stage: number) => void
+  /** 책장(kind=bookshelf)에 책 등을 꽂는다. 색 하나가 책 한 권. 자리가 모자라면 앞에서부터만 */
+  setBooks: (colors: string[]) => void
   player: () => PlayerSpot
   destroy: () => void
 }
@@ -46,6 +51,9 @@ const WALK_FPS = 6
 const FRAME = 48
 const FEET_Y = 30 // 칸 안에서 발이 닿는 높이
 const ROWS: Record<Facing, number> = { down: 0, up: 1, left: 2, right: 3 }
+// 책장 그림(items/bookshelf.png)의 칸 안쪽: scripts/build_village_assets.py의 SHELF_ROWS와 같다
+const SHELF = { left: 3, right: 61, rows: [{ top: 3, bottom: 15 }, { top: 18, bottom: 30 }], spine: 2 }
+const OPPOSITE: Record<Facing, Facing> = { up: 'down', down: 'up', left: 'right', right: 'left' }
 const KEYS: Record<string, Facing> = {
   ArrowUp: 'up', KeyW: 'up',
   ArrowDown: 'down', KeyS: 'down',
@@ -59,9 +67,10 @@ async function loadJson<T>(url: string): Promise<T> {
   return (await res.json()) as T
 }
 
-/** 화면 크기에 맞는 정수 배율. 가로 24칸·세로 15칸쯤 보이게 하고 2~4배 안에서 고른다 */
-export function pickScale(width: number, height: number, tile = 16): number {
-  const s = Math.floor(Math.min(width / (24 * tile), height / (15 * tile)))
+/** 화면 크기에 맞는 정수 배율. 가로 24칸·세로 15칸쯤 보이게 하고 2~4배 안에서 고른다.
+ *  지도가 그보다 작으면(집 안) 지도 전체가 들어가는 만큼 더 키운다 */
+export function pickScale(width: number, height: number, tile = 16, mapW = 24, mapH = 15): number {
+  const s = Math.floor(Math.min(width / (Math.min(24, mapW) * tile), height / (Math.min(15, mapH) * tile)))
   return Math.max(2, Math.min(4, s))
 }
 
@@ -122,14 +131,18 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
   }
 
   const app = new Application()
-  await app.init({ resizeTo: host, background: '#9bd4c3', antialias: false, roundPixels: true, autoDensity: true, resolution: window.devicePixelRatio || 1 })
+  await app.init({ resizeTo: host, background: map.backgroundcolor ?? '#9bd4c3', antialias: false, roundPixels: true, autoDensity: true, resolution: window.devicePixelRatio || 1 })
   host.appendChild(app.canvas)
   app.canvas.style.imageRendering = 'pixelated'
 
   const world = new Container()
   app.stage.addChild(world)
 
-  // 층 순서: 바닥 층들 → 건물 → 캐릭터 → 'above'(나무 윗부분) / 'collision'은 그리지 않는다
+  /** 책장 그림이 놓인 자리 (책 등을 그 위에 그린다) */
+  let shelfAt: { x: number; y: number } | null = null
+  const books = new Graphics()
+
+  // 층 순서: 바닥 층들 → 건물·가구 → 캐릭터 → 'above'(나무 윗부분) / 'collision'은 그리지 않는다
   const front = new Container() // 캐릭터보다 위에 그릴 층
   const actors = new Container()
   for (const layer of map.layers) {
@@ -160,7 +173,9 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
         // 그림 타일 오브젝트는 (x, y)가 왼쪽 아래 모서리다
         sprite.position.set(o.x, o.y - o.height)
         box.addChild(sprite)
+        if (prop<string>(o, 'kind') === 'bookshelf') shelfAt = { x: o.x, y: o.y - o.height }
       }
+      if (shelfAt) box.addChild(books)
       world.addChild(box)
     }
   }
@@ -176,11 +191,15 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
   }
   const grid = collisionGrid(map)
   const places = spots(map)
-  const startTile = opts.start && !isBlocked(grid, opts.start.x, opts.start.y) ? opts.start : spawnTile(map)
+  const door = opts.startAt ? places.find((p) => p.kind === opts.startAt) : undefined
+  const saved = opts.start && !isBlocked(grid, opts.start.x, opts.start.y) ? opts.start : null
+  const startTile = door?.entry ?? saved ?? spawnTile(map)
+  // 문 앞에서 시작하면 문을 등지고 선다
+  const startFacing: Facing = door ? OPPOSITE[door.facing] : (saved?.facing ?? 'down')
   const player = {
     x: startTile.x * T + T / 2,
     y: startTile.y * T + T - 2,
-    facing: (opts.start?.facing ?? 'down') as Facing,
+    facing: startFacing,
     walking: false,
     clock: 0,
   }
@@ -200,7 +219,7 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
   function enter(spot: Spot) {
     path = []
     heading = null
-    player.facing = 'up'
+    player.facing = spot.facing
     opts.onEnter(spot.kind, snapshot())
   }
 
@@ -225,7 +244,7 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
   }
   const onBlur = () => (held.length = 0)
 
-  let scale = pickScale(app.screen.width, app.screen.height, T)
+  let scale = pickScale(app.screen.width, app.screen.height, T, map.width, map.height)
   function toWorld(sx: number, sy: number) {
     return { x: (sx - world.x) / scale, y: (sy - world.y) / scale }
   }
@@ -314,14 +333,15 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
       const t = tileOfPlayer()
       if (heading && path.length === 0 && t.x === heading.entry.x && t.y === heading.entry.y) {
         enter(heading)
-      } else if (held[held.length - 1] === 'up') {
-        const door = places.find((s) => s.entry.x === t.x && s.entry.y === t.y)
+      } else if (held.length) {
+        const dir = held[held.length - 1]
+        const door = places.find((s) => s.entry.x === t.x && s.entry.y === t.y && s.facing === dir)
         if (door) enter(door)
       }
     }
 
     // 카메라: 캐릭터를 가운데에 두되 지도 밖은 보이지 않게
-    scale = pickScale(app.screen.width, app.screen.height, T)
+    scale = pickScale(app.screen.width, app.screen.height, T, map.width, map.height)
     world.scale.set(scale)
     const mapW = map.width * T * scale
     const mapH = map.height * T * scale
@@ -338,6 +358,18 @@ export async function createVillageScene(host: HTMLElement, opts: SceneOptions):
       if (p) path = []
     },
     player: snapshot,
+    setBooks(colors) {
+      books.clear()
+      if (!shelfAt) return
+      const perRow = Math.floor((SHELF.right - SHELF.left) / SHELF.spine)
+      colors.slice(0, perRow * SHELF.rows.length).forEach((color, i) => {
+        const row = SHELF.rows[Math.floor(i / perRow)]
+        // 책마다 키를 조금씩 다르게 (같은 순서면 늘 같은 모양)
+        const h = row.bottom - row.top - ((i * 7) % 4)
+        const x = shelfAt!.x + SHELF.left + (i % perRow) * SHELF.spine
+        books.rect(x, shelfAt!.y + row.bottom - h, SHELF.spine, h).fill(color)
+      })
+    },
     setCrop(level, stage) {
       for (const c of crops) {
         const tex = textureOf(c.firstgid + (level - 1) * c.columns + stage)

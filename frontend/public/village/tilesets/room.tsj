@@ -1,0 +1,15 @@
+{
+  "type": "tileset",
+  "version": "1.10",
+  "tiledversion": "1.11.0",
+  "name": "room",
+  "tilewidth": 16,
+  "tileheight": 16,
+  "image": "room.png",
+  "imagewidth": 112,
+  "imageheight": 80,
+  "columns": 7,
+  "tilecount": 35,
+  "margin": 0,
+  "spacing": 0
+}

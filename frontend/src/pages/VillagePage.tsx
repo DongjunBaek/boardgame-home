@@ -1,17 +1,27 @@
-import { X } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { ArrowLeft, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import '../village-fonts.css'
-import { fetchVillage, gachaVillage, harvestVillage, researchVillage, saveVillagePlayer, saveVillagePlayerOnLeave } from '../lib/api'
+import { fetchGames, fetchVillage, gachaVillage, harvestVillage, researchVillage, saveVillagePlayer, saveVillagePlayerOnLeave } from '../lib/api'
+import { formatMinutes, formatPlayers, formatPrice } from '../lib/format'
+import type { Game } from '../lib/types'
+import { shelfOrder, spineColor } from '../lib/village/books'
 import { clockOffset, farmNow, formatLeft, growthStage, type FarmNow } from '../lib/village/farm'
-import { createVillageScene, type VillageScene } from '../lib/village/scene'
-import { isPlace, itemUrl, objectParticle, PLACES, type GachaResult, type PlaceKind, type VillageState } from '../lib/village/state'
+import { createVillageScene, type PlayerSpot, type VillageScene } from '../lib/village/scene'
+import { isPlace, itemUrl, objectParticle, PLACES, type GachaResult, type MapName, type PlaceKind, type VillageState } from '../lib/village/state'
 
-const MAP_URL = '/village/maps/village.tmj'
 const PLAYER_URL = '/village/sprites/player-default.png'
 const COIN_URL = '/village/icons/coin.png'
 const CRYSTAL_URL = '/village/icons/crystal.png'
 const CHEST_CLOSED_URL = '/village/icons/chest-closed.png'
 const CHEST_OPEN_URL = '/village/icons/chest-open.png'
+
+/** 지금 그리는 지도와 시작 자리. 바뀔 때마다 캔버스를 새로 만든다 */
+type Where = { map: MapName; start: PlayerSpot | null; startAt?: string }
+
+const HINTS: Record<MapName, string> = {
+  village: '건물을 누르거나 문 앞에서 위로 걸으면 들어가기',
+  house: '책장을 누르면 책 보기 · 아래 문으로 나가기',
+}
 
 /** 대시보드: 픽셀아트 마을. 지도·캐릭터는 PixiJS 캔버스, 건물 패널은 그 위에 React로 띄운다 */
 export default function VillagePage() {
@@ -20,12 +30,15 @@ export default function VillagePage() {
   const [state, setState] = useState<VillageState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState<PlaceKind | null>(null)
-  // 캔버스는 처음 불러온 자리에서 한 번만 만든다 (undefined = 아직 못 불러옴, null = 지도 시작점)
-  const [start, setStart] = useState<VillageState['player'] | undefined>(undefined)
-  const loaded = start !== undefined
+  // undefined = 아직 못 불러옴
+  const [where, setWhere] = useState<Where | undefined>(undefined)
+  const loaded = where !== undefined
   // 밭은 서버 시각 기준으로 센다. offset = 서버 시각 - 이 컴퓨터 시각
   const [offset, setOffset] = useState(0)
   const [now, setNow] = useState(() => Date.now())
+  // 책장: 집에 처음 들어갈 때 게임 목록을 불러온다
+  const [games, setGames] = useState<Game[] | null>(null)
+  const [gamesError, setGamesError] = useState<string | null>(null)
 
   const apply = useCallback((s: VillageState) => {
     setState(s)
@@ -36,7 +49,7 @@ export default function VillagePage() {
     fetchVillage()
       .then((s) => {
         apply(s)
-        setStart(s.player)
+        setWhere({ map: s.player?.map ?? 'village', start: s.player })
       })
       .catch((e: Error) => setError(e.message))
   }, [apply])
@@ -46,32 +59,48 @@ export default function VillagePage() {
     return () => window.clearInterval(id)
   }, [])
 
+  const inHouse = where?.map === 'house'
+  useEffect(() => {
+    if (!inHouse || games) return
+    fetchGames()
+      .then(setGames)
+      .catch((e: Error) => setGamesError(e.message))
+  }, [inHouse, games])
+
+  const books = useMemo(() => (games ? shelfOrder(games) : []), [games])
+  const bookColors = useMemo(() => books.map((g, i) => spineColor(g, i)), [books])
+
   const farm = state ? farmNow(state, offset, now) : null
   const stage = farm ? growthStage(farm.ratio) : 1
   const level = state?.crop_level ?? 1
-  // 캔버스가 늦게 만들어져도 지금 작물로 시작하게 기억해 둔다
-  const cropRef = useRef({ level, stage })
+  // 캔버스가 늦게 만들어져도 지금 작물·책으로 시작하게 기억해 둔다
+  const paintRef = useRef({ level, stage, bookColors })
   useEffect(() => {
-    cropRef.current = { level, stage }
+    paintRef.current = { level, stage, bookColors }
     sceneRef.current?.setCrop(level, stage)
-  }, [level, stage])
+    sceneRef.current?.setBooks(bookColors)
+  }, [level, stage, bookColors])
 
   useEffect(() => {
     const host = hostRef.current
-    if (start === undefined || !host) return
+    if (!where || !host) return
     let cancelled = false
     let scene: VillageScene | null = null
-    const leave = () => scene && saveVillagePlayerOnLeave(scene.player())
+    const leave = () => scene && saveVillagePlayerOnLeave(where.map, scene.player())
 
     createVillageScene(host, {
-      mapUrl: MAP_URL,
+      mapUrl: `/village/maps/${where.map}.tmj`,
       playerSheetUrl: PLAYER_URL,
-      start,
+      start: where.start,
+      startAt: where.startAt,
       onEnter: (kind, at) => {
+        // 집 문과 나가는 문은 창 대신 지도를 바꾼다 (이 캔버스를 치울 때 지금 자리를 저장한다)
+        if (kind === 'house') return setWhere({ map: 'house', start: null })
+        if (kind === 'exit') return setWhere({ map: 'village', start: null, startAt: 'house' })
         if (!isPlace(kind)) return
         scene?.setPaused(true)
         setOpen(kind)
-        saveVillagePlayer(at)
+        saveVillagePlayer(where.map, at)
           .then(apply)
           .catch((e: Error) => setError(`자리를 저장하지 못했습니다: ${e.message}`))
       },
@@ -81,7 +110,8 @@ export default function VillagePage() {
         if (cancelled) return s.destroy()
         scene = s
         sceneRef.current = s
-        s.setCrop(cropRef.current.level, cropRef.current.stage)
+        s.setCrop(paintRef.current.level, paintRef.current.stage)
+        s.setBooks(paintRef.current.bookColors)
       })
       .catch((e: Error) => !cancelled && setError(e.message))
 
@@ -95,7 +125,7 @@ export default function VillagePage() {
       }
       sceneRef.current = null
     }
-  }, [start, apply])
+  }, [where, apply])
 
   const close = useCallback(() => {
     setOpen(null)
@@ -116,7 +146,7 @@ export default function VillagePage() {
         <p className="summary village-hints">
           <span className="summary-pill village-keys">방향키·WASD로 걷기</span>
           <span className="summary-pill">땅을 누르면 그 자리로</span>
-          <span className="summary-pill">건물을 누르거나 문 앞에서 위로 걸으면 들어가기</span>
+          <span className="summary-pill">{HINTS[where?.map ?? 'village']}</span>
         </p>
       </header>
       <div className="content">
@@ -136,8 +166,12 @@ export default function VillagePage() {
               </span>
             </div>
           )}
-          {open && state && farm && (
-            <PlacePanel kind={open} state={state} farm={farm} onClose={close} onHarvested={apply} />
+          {open === 'bookshelf' ? (
+            <BookshelfPanel books={books} colors={bookColors} error={gamesError} onClose={close} />
+          ) : (
+            open &&
+            state &&
+            farm && <PlacePanel kind={open} state={state} farm={farm} onClose={close} onHarvested={apply} />
           )}
         </div>
       </div>
@@ -146,7 +180,7 @@ export default function VillagePage() {
 }
 
 type PanelProps = {
-  kind: PlaceKind
+  kind: Exclude<PlaceKind, 'bookshelf'>
   state: VillageState
   farm: FarmNow
   onClose: () => void
@@ -169,10 +203,8 @@ function PlacePanel({ kind, state, farm, onClose, onHarvested }: PanelProps) {
         <FarmBody state={state} farm={farm} onHarvested={onHarvested} />
       ) : kind === 'lab' ? (
         <LabBody state={state} farm={farm} onResearched={onHarvested} />
-      ) : kind === 'shop' ? (
-        <ShopBody state={state} onPulled={onHarvested} />
       ) : (
-        <p className="village-soon">준비 중 · {place.stage}에서 열립니다</p>
+        <ShopBody state={state} onPulled={onHarvested} />
       )}
     </section>
   )
@@ -335,5 +367,78 @@ function GachaPrize({ result }: { result: GachaResult }) {
       <img src={coin ? COIN_URL : CRYSTAL_URL} alt="" />
       {coin ? '코인' : '크리스탈'} {result.amount}개를 얻었습니다
     </p>
+  )
+}
+
+type ShelfProps = { books: Game[]; colors: string[]; error: string | null; onClose: () => void }
+
+/** 책장 창: 책 등을 누르면 그 게임 정보 (보기 전용. 고치기는 '내 보드게임 목록'에서) */
+function BookshelfPanel({ books, colors, error, onClose }: ShelfProps) {
+  const [picked, setPicked] = useState<Game | null>(null)
+  const place = PLACES.bookshelf
+  return (
+    <section className="village-panel wide" role="dialog" aria-label={place.name}>
+      <header>
+        <h2>{picked ? picked.title : `${place.name} · ${books.length}권`}</h2>
+        <button type="button" className="village-close" onClick={onClose} aria-label="닫기" autoFocus>
+          <X size={16} aria-hidden="true" />
+        </button>
+      </header>
+      {error ? (
+        <p className="village-note muted">게임 목록을 불러오지 못했습니다: {error}</p>
+      ) : picked ? (
+        <BookDetail game={picked} onBack={() => setPicked(null)} />
+      ) : (
+        <>
+          <p>{place.about}</p>
+          <ul className="village-shelf">
+            {books.map((g, i) => (
+              <li key={g.id}>
+                <button
+                  type="button"
+                  className="village-book"
+                  style={{ background: colors[i], height: 84 + ((i * 7) % 4) * 4 }}
+                  title={g.title}
+                  onClick={() => setPicked(g)}
+                >
+                  {g.title}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
+  )
+}
+
+function BookDetail({ game, onBack }: { game: Game; onBack: () => void }) {
+  const { mine } = game
+  const rows: [string, string | null][] = [
+    ['장르', game.genres.join(', ') || null],
+    ['인원', formatPlayers(game.player_count)],
+    ['시간', formatMinutes(game.play_time_minutes)],
+    ['제작사', game.publisher],
+    ['정가', formatPrice(game.price)],
+    ['해봤음', mine.played ? '해봤음' : '안 해봄'],
+    ['별점', mine.rating === null ? null : `${mine.rating} / 5`],
+    ['개수', `${mine.quantity}개`],
+    ['메모', mine.notes],
+  ]
+  return (
+    <>
+      <dl className="village-facts">
+        {rows.map(([k, v]) => (
+          <div key={k}>
+            <dt>{k}</dt>
+            <dd>{v ?? '없음'}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="village-soon">고치기는 '내 보드게임 목록'에서 합니다</p>
+      <button type="button" className="village-button" onClick={onBack}>
+        <ArrowLeft size={14} aria-hidden="true" /> 책장으로
+      </button>
+    </>
   )
 }

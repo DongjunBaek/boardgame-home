@@ -73,7 +73,8 @@ class GachaError(Exception):
 class ResearchError(Exception):
     """올릴 수 없는 경우 (최고 레벨, 코인 모자람). 화면에 그대로 보여 줄 문장을 담는다."""
 
-MapName = Literal["village"]
+# 지도: 마을, 집 안 (frontend/public/village/maps/<이름>.tmj)
+MapName = Literal["village", "house"]
 Facing = Literal["down", "up", "left", "right"]
 
 

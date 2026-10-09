@@ -2,7 +2,7 @@
 import type { Club, Member, MemberInput, Payment, PaymentInput, Tier, TierInput } from './club'
 import type { EntryInput, LedgerEntry } from './ledger'
 import type { PlayerSpot } from './village/scene'
-import type { GachaResult, VillageState } from './village/state'
+import type { GachaResult, MapName, VillageState } from './village/state'
 import type { ExcelPreview, ExcelReport, Game, GameInput, Store, StoreInput } from './types'
 
 export type Health = { status: string; data_dir: string }
@@ -100,7 +100,7 @@ export const deleteEntry = (id: string) => request<void>('DELETE', entryPath(id)
 /** 처음 부르면 서버가 기본 상태를 만들어 저장한다 */
 export const fetchVillage = (fetchFn?: typeof fetch) => getJson<VillageState>('/village', fetchFn)
 
-export const saveVillagePlayer = (spot: PlayerSpot) => request<VillageState>('PUT', '/village/player', { map: 'village', ...spot })
+export const saveVillagePlayer = (map: MapName, spot: PlayerSpot) => request<VillageState>('PUT', '/village/player', { map, ...spot })
 
 /** 밭에 쌓인 코인 거두기. 거둘 것이 없으면 harvested가 0이다 */
 export const harvestVillage = () => request<{ harvested: number; village: VillageState }>('POST', '/village/harvest')
@@ -113,11 +113,11 @@ export const researchVillage = () =>
 export const gachaVillage = () => request<{ result: GachaResult; village: VillageState }>('POST', '/village/gacha')
 
 /** 화면을 떠날 때: 페이지가 닫혀도 요청이 끝까지 가도록 keepalive로 보낸다 */
-export function saveVillagePlayerOnLeave(spot: PlayerSpot) {
+export function saveVillagePlayerOnLeave(map: MapName, spot: PlayerSpot) {
   void fetch('/api/village/player', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ map: 'village', ...spot }),
+    body: JSON.stringify({ map, ...spot }),
     keepalive: true,
   }).catch(() => {})
 }

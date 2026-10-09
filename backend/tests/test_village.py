@@ -33,7 +33,8 @@ def test_put_player_saves_position_and_skips_same_position(isolated_data_dir):
 def test_put_player_validates():
     base = {"map": "village", "x": 1, "y": 1, "facing": "down"}
     assert client.put("/api/village/player", json={**base, "facing": "north"}).status_code == 422
-    assert client.put("/api/village/player", json={**base, "map": "house"}).status_code == 422
+    assert client.put("/api/village/player", json={**base, "map": "cave"}).status_code == 422
+    assert client.put("/api/village/player", json={**base, "map": "house"}).json()["player"]["map"] == "house"
     assert client.put("/api/village/player", json={**base, "x": -1}).status_code == 422
     assert client.put("/api/village/player", json={**base, "extra": 1}).status_code == 422
 

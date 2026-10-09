@@ -28,6 +28,10 @@ TILESETS = {
     "fences": "Tilesets/Fences.png",
     "nature": "Objects/Basic Grass Biom things 1.png",
     "crops": "Objects/Basic Plants.png",
+    # 집 안: 방 벽·바닥, 창 있는 벽, 문
+    "walls": "Tilesets/Wooden_House_Walls_Tilset.png",
+    "room": "Tilesets/Wooden House.png",
+    "doors": "Tilesets/Doors.png",
 }
 
 # 작물: 줄마다 씨앗 봉투 · 자라는 4단계 · 거둔 열매. 1줄 밀(LV1), 2줄 분홍 열매(LV2), 3줄은 2줄의 열매 색을 바꾼 파란 열매(LV3)
@@ -205,6 +209,27 @@ FURNITURE = {
 }
 
 
+# 책장: 팩에 없어서 서랍장 색으로 직접 그린다 (64×32, 두 칸). 책 등은 화면이 게임 목록으로 그린다.
+# 칸 안쪽 자리는 frontend/src/lib/village/scene.ts의 SHELF와 같아야 한다
+BOOKSHELF = {"outline": "#754c60", "wood": "#b68962", "light": "#dcb98a", "board": "#c49a6c", "back": "#90625d"}
+SHELF_ROWS = [(3, 15), (18, 30)]  # 칸마다 (위 y, 아래 y). 안쪽 x는 3~61
+
+
+def bookshelf() -> Image.Image:
+    from PIL import ImageDraw
+
+    c = {k: _rgb(v) for k, v in BOOKSHELF.items()}
+    im = Image.new("RGBA", (64, 32))
+    d = ImageDraw.Draw(im)
+    d.rectangle((0, 0, 63, 31), fill=c["wood"], outline=c["outline"])
+    d.line((1, 1, 62, 1), fill=c["light"])
+    for top, bottom in SHELF_ROWS:
+        d.rectangle((3, top, 60, bottom - 1), fill=c["back"])
+        d.line((2, bottom, 61, bottom), fill=c["board"])
+        d.line((2, bottom + 1, 61, bottom + 1), fill=c["outline"])
+    return im
+
+
 def icon(colors: dict[str, str], rows: list[str]) -> Image.Image:
     im = Image.new("RGBA", (T, T))
     for y, row in enumerate(rows):
@@ -291,18 +316,30 @@ def main() -> None:
     sprites = OUT / "sprites"
     sprites.mkdir(exist_ok=True)
     shutil.copyfile(SRC / "Characters" / "Basic Charakter Spritesheet.png", sprites / "player-default.png")
+    # 집 안 가구: 그림 모음 타일셋 (뽑기 가구 그림 + 책장). 지도에 그림째로 놓는다
+    items = OUT / "items"
+    items.mkdir(exist_ok=True)
+    bookshelf().save(items / "bookshelf.png")
+    furniture_tiles = []
+    sheet = src("Objects/Basic Furniture.png")
+    for i, item_id in enumerate([*FURNITURE, "bookshelf"]):
+        path = items / f"{item_id}.png"
+        if item_id != "bookshelf":
+            part = sheet.crop(FURNITURE[item_id])
+            part.crop(part.getbbox()).save(path)
+        im = Image.open(path)
+        furniture_tiles.append({"id": i, "image": f"../items/{item_id}.png", "imagewidth": im.width, "imageheight": im.height,
+                                "properties": [{"name": "item", "type": "string", "value": item_id}]})
+    write_json(tilesets / "furniture.tsj", {
+        "type": "tileset", "version": "1.10", "tiledversion": "1.11.0", "name": "furniture",
+        "tilewidth": 64, "tileheight": 32, "columns": 0, "tilecount": len(furniture_tiles), "margin": 0, "spacing": 0,
+        "grid": {"orientation": "orthogonal", "width": 1, "height": 1}, "tiles": furniture_tiles,
+    })
+
     icons = OUT / "icons"
     icons.mkdir(exist_ok=True)
     for name, (colors, rows) in ICONS.items():
         icon(colors, rows).save(icons / f"{name}.png")
-    # 뽑기 가구: 하나씩 잘라서 items/<id>.png
-    items = OUT / "items"
-    items.mkdir(exist_ok=True)
-    sheet = src("Objects/Basic Furniture.png")
-    for item_id, box in FURNITURE.items():
-        part = sheet.crop(box)
-        part.crop(part.getbbox()).save(items / f"{item_id}.png")
-
     # 뽑기 상자: Chest.png 첫 줄(48×48 칸)의 닫힌 것과 열린 것.
     # 칸 안 그림이 작아서 두 장 모두 그림이 있는 곳(열린 뚜껑까지)만 같은 크기(18×21)로 자른다
     chest = src("Objects/Chest.png")

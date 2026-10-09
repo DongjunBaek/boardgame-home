@@ -1,0 +1,15 @@
+{
+  "type": "tileset",
+  "version": "1.10",
+  "tiledversion": "1.11.0",
+  "name": "doors",
+  "tilewidth": 16,
+  "tileheight": 16,
+  "image": "doors.png",
+  "imagewidth": 16,
+  "imageheight": 64,
+  "columns": 1,
+  "tilecount": 4,
+  "margin": 0,
+  "spacing": 0
+}

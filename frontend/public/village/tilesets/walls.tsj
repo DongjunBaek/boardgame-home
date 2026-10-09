@@ -1,0 +1,15 @@
+{
+  "type": "tileset",
+  "version": "1.10",
+  "tiledversion": "1.11.0",
+  "name": "walls",
+  "tilewidth": 16,
+  "tileheight": 16,
+  "image": "walls.png",
+  "imagewidth": 80,
+  "imageheight": 48,
+  "columns": 5,
+  "tilecount": 15,
+  "margin": 0,
+  "spacing": 0
+}

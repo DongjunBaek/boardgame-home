@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { findPath, moveFeet, nearestOpen } from './path'
+import { pickScale } from './scene'
+import houseText from '../../../public/village/maps/house.tmj?raw'
 import mapText from '../../../public/village/maps/village.tmj?raw'
 import { collisionGrid, isBlocked, resolveGid, spawnTile, spotAt, spots, tileFrame, type Grid, type LoadedTileset, type TiledMap } from './tiled'
 
@@ -109,5 +111,31 @@ describe('village.tmj (실제 지도)', () => {
     const cy = house.area.y + house.area.height / 2
     expect(spotAt(spots(map), cx, cy)?.kind).toBe('house')
     expect(spotAt(spots(map), 0, 0)).toBeUndefined()
+  })
+})
+
+describe('house.tmj (집 안 지도)', () => {
+  const map = JSON.parse(houseText) as TiledMap
+  const g = collisionGrid(map)
+  const start = spawnTile(map)
+
+  it('has a bookshelf and an exit you walk down into', () => {
+    const list = spots(map)
+    expect(list.map((s) => s.kind).sort()).toEqual(['bookshelf', 'exit'])
+    expect(list.find((s) => s.kind === 'exit')?.facing).toBe('down')
+    expect(list.find((s) => s.kind === 'bookshelf')?.facing).toBe('up')
+    expect(map.backgroundcolor).toBeTruthy()
+  })
+
+  it('can walk from the spawn to the bookshelf and the exit', () => {
+    for (const s of spots(map)) expect(findPath(g, start, s.entry), s.kind).not.toBeNull()
+  })
+})
+
+describe('pickScale', () => {
+  it('shows about 24×15 tiles, and fills the view with small maps', () => {
+    expect(pickScale(1200, 760)).toBe(3)
+    expect(pickScale(1200, 760, 16, 14, 10)).toBe(4)
+    expect(pickScale(375, 500)).toBe(2)
   })
 })

@@ -28,6 +28,8 @@ export type TiledObject = {
 export type TiledObjectLayer = { type: 'objectgroup'; name: string; visible: boolean; objects: TiledObject[] }
 
 export type TiledMap = {
+  /** 지도 바깥 바탕색 (Tiled의 지도 속성) */
+  backgroundcolor?: string
   width: number
   height: number
   tilewidth: number
@@ -108,8 +110,13 @@ export function isBlocked(grid: Grid, x: number, y: number): boolean {
 
 export type Tile = { x: number; y: number }
 
-/** 눌러서 들어가는 곳(건물·밭): 그림이 차지하는 칸 범위와 들어가는 칸 */
-export type Spot = { kind: string; area: { x: number; y: number; width: number; height: number }; entry: Tile }
+/** 눌러서 들어가는 곳(건물·밭·책장·나가는 문): 그림이 차지하는 범위(px), 들어가는 칸, 그 칸에서 걸어야 하는 방향 */
+export type Spot = {
+  kind: string
+  area: { x: number; y: number; width: number; height: number }
+  entry: Tile
+  facing: 'up' | 'down' | 'left' | 'right'
+}
 
 export function spots(map: TiledMap): Spot[] {
   const out: Spot[] = []
@@ -121,7 +128,8 @@ export function spots(map: TiledMap): Spot[] {
       if (!kind || entryX === undefined || entryY === undefined) continue
       // 그림 타일 오브젝트(gid 있음)는 y가 아래 변이다
       const top = o.gid ? o.y - o.height : o.y
-      out.push({ kind, area: { x: o.x, y: top, width: o.width, height: o.height }, entry: { x: entryX, y: entryY } })
+      const facing = prop<Spot['facing']>(o, 'facing') ?? 'up'
+      out.push({ kind, area: { x: o.x, y: top, width: o.width, height: o.height }, entry: { x: entryX, y: entryY }, facing })
     }
   }
   return out
