@@ -145,7 +145,7 @@ svg {
   align-items: center;
   gap: 12px;
   height: 52px;
-  padding: 0 16px 3px;
+  padding: 0 16px 2px;
   background: var(--sidebar);
   border-bottom: 1px solid var(--border);
 }
@@ -157,7 +157,7 @@ svg {
   right: 0;
   bottom: 0;
   left: 0;
-  height: 3px;
+  height: 2px;
   background: repeating-linear-gradient(
     90deg,
     var(--track-1) 0 28px,
@@ -165,7 +165,7 @@ svg {
     var(--track-3) 56px 84px,
     var(--track-4) 84px 112px
   );
-  opacity: 0.85;
+  opacity: 0.5;
 }
 
 .appbar-brand {
