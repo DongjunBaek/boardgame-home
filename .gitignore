@@ -22,3 +22,6 @@ frontend/dist/
 
 # 마을 그림 원본 팩 (라이선스상 팩째로 나눠 주면 안 된다. 받는 곳: docs/research/village-assets.md)
 assets-src/
+
+# Claude Code 개인 설정 (권한 등)
+.claude/settings.local.json
