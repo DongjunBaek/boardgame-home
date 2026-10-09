@@ -2,6 +2,8 @@
 
 작성: 2026-10-08 · 상태: v1 완료 (2026-10-09)
 
+> 2026-10-09부터 다음 계획은 [v2-screen-renewal.md](v2-screen-renewal.md)에 있다. 이 문서는 v1 기록과 데이터 규칙으로 남긴다. 문서 목차는 [docs/README.md](../README.md)에 있다.
+
 | 단계 | 상태 |
 |---|---|
 | 0. 준비 | 완료 (2026-10-08) |
@@ -79,6 +81,7 @@
 ### 하지 않음
 
 - 회원·로그인·권한, 동아리, 회비, 모임, 채팅, 인터넷 배포
+  - 2026-10-09: 동아리 회비·게시판·관리자 **메뉴 자리**는 만들었다 ([decisions/0002](../decisions/0002-sidebar-menu.md)). 로그인·배포 여부는 아직 정하지 않았다 ([questions.md](../questions.md) 8번)
 - `catalog.json`의 보유하지 않은 게임 (필요하면 옛 저장소에서 다시 뽑는다)
 
 ---
@@ -147,6 +150,8 @@
 
 ## 4. 화면 구성
 
+> 아래는 v1 당시의 그림이다. 지금 앱 틀(상단바·사이드바 메뉴·주소)은 [design/layout.md](../design/layout.md)에 있다.
+
 화면은 하나이고, 창 두 개가 그 위에 뜬다.
 
 ```
@@ -198,7 +203,7 @@ boardgame-home/
   data/           collection.json, backups/   ← git 제외
   scripts/        migrate_from_danseo.py (미리보기 기본, --apply로 저장)
   handoff/        인수인계 원본 (읽기 전용 보관)
-  docs/PLAN.md
+  docs/           개발 문서 (지금 구조는 docs/README.md)
   start.bat
 ```
 
