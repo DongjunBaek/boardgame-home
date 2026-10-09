@@ -15,8 +15,8 @@ def test_first_get_creates_default_state(isolated_data_dir):
     assert state["coins"] == 0 and state["crystals"] == 0 and state["crop_level"] == 1
     assert state["player"] is None and state["skins"] == {"player": "default", "buildings": {}}
     saved = json.loads((isolated_data_dir / village.VILLAGE_FILE).read_text(encoding="utf-8"))
-    # 파일에는 상태만, 화면에는 밭 계산·다음 연구·서버 시각을 더해 보낸다
-    assert saved == {k: v for k, v in state.items() if k not in ("farm", "lab", "server_time")}
+    # 파일에는 상태만, 화면에는 밭 계산·다음 연구·뽑기 정보·서버 시각을 더해 보낸다
+    assert saved == {k: v for k, v in state.items() if k not in ("farm", "lab", "shop", "server_time")}
     # 두 번째로 읽어도 처음 만든 시각이 그대로다
     assert client.get("/api/village").json()["last_harvest"] == state["last_harvest"]
 
@@ -163,3 +163,81 @@ def test_research_api(isolated_data_dir, monkeypatch):
     assert body["harvested"] == 120 and body["cost"] == 300
     assert body["village"]["coins"] == 20 and body["village"]["crop_level"] == 2
     assert body["village"]["lab"]["next_level"] == 3
+
+
+# ---------- 상점 뽑기 ----------
+
+import random
+from collections import Counter
+
+from backend.app.config import ROOT
+
+
+class FixedRng:
+    """draw가 쓰는 두 메서드만 흉내 낸다. choices는 정해 둔 결과를, choice는 첫 가구를 돌려준다."""
+
+    def __init__(self, pick: dict):
+        self.pick = pick
+
+    def choices(self, population, weights=None, k=1):
+        return [self.pick]
+
+    def choice(self, seq):
+        return seq[0]
+
+
+def test_every_furniture_has_a_picture():
+    folder = ROOT / "frontend" / "public" / "village" / "items"
+    missing = [i for i in village.FURNITURE if not (folder / f"{i}.png").is_file()]
+    assert missing == []
+
+
+def test_draw_follows_the_table_roughly():
+    rng = random.Random(42)
+    kinds = Counter(village.draw(rng)["kind"] for _ in range(5000))
+    assert 0.66 < kinds["item"] / 5000 < 0.74
+    assert 0.17 < kinds["coins"] / 5000 < 0.23
+    assert 0.08 < kinds["crystals"] / 5000 < 0.12
+    item = next(r for r in (village.draw(rng) for _ in range(50)) if r["kind"] == "item")
+    assert item["name"] == village.FURNITURE[item["id"]]
+
+
+def test_gacha_pays_and_stacks_duplicates():
+    s = state_at(T0, coins=250)
+    s, r1 = village.gacha(s, FixedRng({"kind": "item"}))
+    s, r2 = village.gacha(s, FixedRng({"kind": "item"}))
+    first = sorted(village.FURNITURE)[0]
+    assert r1 == r2 == {"kind": "item", "id": first, "name": village.FURNITURE[first]}
+    assert s["coins"] == 50 and s["items"] == [{"id": first, "count": 2}]
+
+
+def test_gacha_currency_results_and_not_enough_coins():
+    s, r = village.gacha(state_at(T0, coins=100), FixedRng({"kind": "crystals", "amount": 3}))
+    assert r == {"kind": "crystals", "amount": 3} and s["crystals"] == 3 and s["coins"] == 0
+    s, r = village.gacha(state_at(T0, coins=100), FixedRng({"kind": "coins", "amount": 150}))
+    assert s["coins"] == 150
+    poor = state_at(T0, coins=99)
+    try:
+        village.gacha(poor, random.Random(1))
+    except village.GachaError as e:
+        assert "필요 100" in str(e)
+    else:
+        raise AssertionError("코인이 모자라면 실패해야 한다")
+    assert poor["coins"] == 99
+
+
+def test_gacha_api(isolated_data_dir, monkeypatch):
+    from backend.app import main
+
+    monkeypatch.setattr(main.secrets, "SystemRandom", lambda: FixedRng({"kind": "item"}))
+    shop = client.get("/api/village").json()["shop"]
+    assert shop["cost"] == 100 and shop["names"]["bed-green"] == "초록 침대"
+    res = client.post("/api/village/gacha")
+    assert res.status_code == 409 and "코인이 모자랍니다" in res.json()["detail"]
+
+    path = isolated_data_dir / village.VILLAGE_FILE
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    path.write_text(json.dumps({**saved, "coins": 120}), encoding="utf-8")
+    body = client.post("/api/village/gacha").json()
+    assert body["result"]["kind"] == "item"
+    assert body["village"]["coins"] == 20 and body["village"]["items"][0]["count"] == 1

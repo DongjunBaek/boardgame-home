@@ -5,6 +5,7 @@
 - 밭 보상은 서버가 계산한다. 화면에서 계산하면 조작할 수 있어서다. 뽑기 결과도 나중 단계에서 서버가 정한다.
 """
 import copy
+import random
 from datetime import datetime, timedelta
 from typing import Annotated, Literal
 
@@ -19,6 +20,54 @@ FARM_CAP_HOURS = 12
 # 연구소: 그 레벨로 올리는 데 드는 코인 (임시 숫자, docs/questions.md 29번). 시간은 걸리지 않는다
 CROP_COSTS = {2: 300, 3: 1500}
 MAX_CROP_LEVEL = max(CROP_RATES)
+
+
+# 상점 뽑기 (임시 숫자, docs/questions.md 21·30번). 한 번에 코인 GACHA_COST
+GACHA_COST = 100
+
+# 뽑기 가구: id → 이름. 그림은 frontend/public/village/items/<id>.png (scripts/build_village_assets.py가 자른다)
+FURNITURE = {
+    "bed-green": "초록 침대",
+    "bed-blue": "하늘 침대",
+    "bed-pink": "분홍 침대",
+    "dresser": "서랍장",
+    "table": "나무 탁자",
+    "chair": "나무 의자",
+    "cabinet": "작은 수납장",
+    "side-table": "협탁",
+    "stool": "나무 걸상",
+    "clock-cat": "고양이 시계",
+    "clock-round": "둥근 시계",
+    "clock-small": "작은 시계",
+    "lamp-green": "초록 등",
+    "lamp-blue": "하늘 등",
+    "lamp-pink": "분홍 등",
+    "painting-flowers": "꽃 그림",
+    "painting-field": "들판 그림",
+    "painting-night": "밤하늘 그림",
+    "pot-sunflower": "해바라기 화분",
+    "pot-sprout": "새싹 화분",
+    "pot-blue-flower": "파란 꽃 화분",
+    "rug-small-green": "작은 초록 러그",
+    "rug-small-pink": "작은 분홍 러그",
+    "rug-small-blue": "작은 하늘 러그",
+    "rug-green": "초록 러그",
+    "rug-pink": "분홍 러그",
+    "rug-blue": "하늘 러그",
+}
+
+# 무엇이 나올지: (무게, 결과). 가구 70 · 코인 20 · 크리스탈 10 (가구 안에서는 모두 같은 확률)
+GACHA_TABLE = [
+    (70, {"kind": "item"}),
+    (12, {"kind": "coins", "amount": 50}),
+    (8, {"kind": "coins", "amount": 150}),
+    (7, {"kind": "crystals", "amount": 1}),
+    (3, {"kind": "crystals", "amount": 3}),
+]
+
+
+class GachaError(Exception):
+    """뽑을 수 없는 경우 (코인 모자람). 화면에 그대로 보여 줄 문장을 담는다."""
 
 
 class ResearchError(Exception):
@@ -97,8 +146,14 @@ def lab(state: dict) -> dict | None:
 
 
 def view(state: dict, now: datetime) -> dict:
-    """화면에 보내는 모양: 저장된 상태 + 지금 시각 기준 밭 계산 + 다음 연구 + 서버 시각 (화면이 남은 시간을 셀 때 쓴다)."""
-    return {**state, "farm": farm(state, now), "lab": lab(state), "server_time": now.isoformat(timespec="seconds")}
+    """화면에 보내는 모양: 저장된 상태 + 지금 시각 기준 밭 계산 + 다음 연구 + 뽑기 값·가구 이름 + 서버 시각."""
+    return {
+        **state,
+        "farm": farm(state, now),
+        "lab": lab(state),
+        "shop": {"cost": GACHA_COST, "names": FURNITURE},
+        "server_time": now.isoformat(timespec="seconds"),
+    }
 
 
 def harvest(state: dict, now: datetime) -> tuple[dict, int]:
@@ -138,4 +193,32 @@ def research(state: dict, now: datetime) -> tuple[dict, int, int]:
     new["coins"] -= info["cost"]
     new["crop_level"] = info["next_level"]
     return new, harvested, info["cost"]
+
+
+def draw(rng: random.Random) -> dict:
+    """뽑기 결과 하나. 가구면 {"kind": "item", "id", "name"}, 재화면 {"kind": "coins"|"crystals", "amount"}."""
+    weights = [w for w, _ in GACHA_TABLE]
+    result = dict(rng.choices([r for _, r in GACHA_TABLE], weights=weights)[0])
+    if result["kind"] == "item":
+        item_id = rng.choice(sorted(FURNITURE))
+        result.update(id=item_id, name=FURNITURE[item_id])
+    return result
+
+
+def gacha(state: dict, rng: random.Random) -> tuple[dict, dict]:
+    """코인을 내고 한 번 뽑는다. (새 상태, 결과). 같은 가구가 또 나오면 개수만 늘린다."""
+    if state["coins"] < GACHA_COST:
+        raise GachaError(f"코인이 모자랍니다 (필요 {GACHA_COST}, 가진 코인 {state['coins']})")
+    result = draw(rng)
+    new = copy.deepcopy(state)
+    new["coins"] -= GACHA_COST
+    if result["kind"] == "item":
+        owned = next((it for it in new["items"] if it["id"] == result["id"]), None)
+        if owned:
+            owned["count"] += 1
+        else:
+            new["items"].append({"id": result["id"], "count": 1})
+    else:
+        new[result["kind"]] += result["amount"]
+    return new, result
 

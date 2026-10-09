@@ -2,7 +2,7 @@
 import type { Club, Member, MemberInput, Payment, PaymentInput, Tier, TierInput } from './club'
 import type { EntryInput, LedgerEntry } from './ledger'
 import type { PlayerSpot } from './village/scene'
-import type { VillageState } from './village/state'
+import type { GachaResult, VillageState } from './village/state'
 import type { ExcelPreview, ExcelReport, Game, GameInput, Store, StoreInput } from './types'
 
 export type Health = { status: string; data_dir: string }
@@ -108,6 +108,9 @@ export const harvestVillage = () => request<{ harvested: number; village: Villag
 /** 작물 레벨 올리기. 밭에 쌓인 코인은 서버가 옛 레벨로 먼저 거둔다 (harvested). 못 올리면 이유를 담은 오류 */
 export const researchVillage = () =>
   request<{ harvested: number; cost: number; village: VillageState }>('POST', '/village/research')
+
+/** 상점 뽑기 한 번. 결과는 서버가 정한다. 코인이 모자라면 이유를 담은 오류 */
+export const gachaVillage = () => request<{ result: GachaResult; village: VillageState }>('POST', '/village/gacha')
 
 /** 화면을 떠날 때: 페이지가 닫혀도 요청이 끝까지 가도록 keepalive로 보낸다 */
 export function saveVillagePlayerOnLeave(spot: PlayerSpot) {

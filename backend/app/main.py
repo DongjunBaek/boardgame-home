@@ -2,6 +2,7 @@
 import hashlib
 import json
 import re
+import secrets
 from datetime import date, datetime
 from urllib.parse import quote
 
@@ -425,6 +426,18 @@ def research_village() -> dict:
             raise HTTPException(409, str(e)) from e
         save_json(village.VILLAGE_FILE, state)
     return {"harvested": harvested, "cost": cost, "village": village.view(state, now)}
+
+
+@app.post("/api/village/gacha")
+def gacha_village() -> dict:
+    """상점 뽑기 한 번. 결과는 서버가 정한다 (화면에서 정하면 조작할 수 있어서)."""
+    with collection_lock():
+        try:
+            state, result = village.gacha(_village(), secrets.SystemRandom())
+        except village.GachaError as e:
+            raise HTTPException(409, str(e)) from e
+        save_json(village.VILLAGE_FILE, state)
+    return {"result": result, "village": village.view(state, _now())}
 
 
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])

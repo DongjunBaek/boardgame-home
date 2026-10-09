@@ -1,15 +1,17 @@
 import { X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import '../village-fonts.css'
-import { fetchVillage, harvestVillage, researchVillage, saveVillagePlayer, saveVillagePlayerOnLeave } from '../lib/api'
+import { fetchVillage, gachaVillage, harvestVillage, researchVillage, saveVillagePlayer, saveVillagePlayerOnLeave } from '../lib/api'
 import { clockOffset, farmNow, formatLeft, growthStage, type FarmNow } from '../lib/village/farm'
 import { createVillageScene, type VillageScene } from '../lib/village/scene'
-import { isPlace, PLACES, type PlaceKind, type VillageState } from '../lib/village/state'
+import { isPlace, itemUrl, objectParticle, PLACES, type GachaResult, type PlaceKind, type VillageState } from '../lib/village/state'
 
 const MAP_URL = '/village/maps/village.tmj'
 const PLAYER_URL = '/village/sprites/player-default.png'
 const COIN_URL = '/village/icons/coin.png'
 const CRYSTAL_URL = '/village/icons/crystal.png'
+const CHEST_CLOSED_URL = '/village/icons/chest-closed.png'
+const CHEST_OPEN_URL = '/village/icons/chest-open.png'
 
 /** 대시보드: 픽셀아트 마을. 지도·캐릭터는 PixiJS 캔버스, 건물 패널은 그 위에 React로 띄운다 */
 export default function VillagePage() {
@@ -148,6 +150,7 @@ type PanelProps = {
   state: VillageState
   farm: FarmNow
   onClose: () => void
+  /** 서버가 새 상태를 돌려줬을 때 (거두기·연구·뽑기) */
   onHarvested: (s: VillageState) => void
 }
 
@@ -166,6 +169,8 @@ function PlacePanel({ kind, state, farm, onClose, onHarvested }: PanelProps) {
         <FarmBody state={state} farm={farm} onHarvested={onHarvested} />
       ) : kind === 'lab' ? (
         <LabBody state={state} farm={farm} onResearched={onHarvested} />
+      ) : kind === 'shop' ? (
+        <ShopBody state={state} onPulled={onHarvested} />
       ) : (
         <p className="village-soon">준비 중 · {place.stage}에서 열립니다</p>
       )}
@@ -259,5 +264,76 @@ function LabBody({ state, farm, onResearched }: { state: VillageState; farm: Far
       )}
       {note && <p className={`village-note${note.ok ? '' : ' muted'}`}>{note.text}</p>}
     </>
+  )
+}
+
+function ShopBody({ state, onPulled }: { state: VillageState; onPulled: (s: VillageState) => void }) {
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<GachaResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const { cost, names } = state.shop
+  const short = Math.max(0, cost - state.coins)
+
+  async function pull() {
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await gachaVillage()
+      onPulled(res.village)
+      setResult(res.result)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="village-gacha">
+        <img src={result ? CHEST_OPEN_URL : CHEST_CLOSED_URL} alt="" width={54} height={63} />
+        {result && <GachaPrize key={JSON.stringify(result) + state.coins} result={result} />}
+      </div>
+      <p className="village-meter-text">
+        <img src={COIN_URL} alt="" width={16} height={16} />
+        {cost} / 번<span>{short ? `코인 ${short}개 더 필요합니다` : `가진 코인 ${state.coins.toLocaleString('ko-KR')}`}</span>
+      </p>
+      <button type="button" className="village-button" onClick={() => void pull()} disabled={busy || short > 0}>
+        뽑기
+      </button>
+      {error && <p className="village-note muted">{error}</p>}
+      <h3 className="village-sub">가진 물건 {state.items.length ? `${state.items.length}종` : ''}</h3>
+      {state.items.length ? (
+        <ul className="village-items">
+          {state.items.map((it) => (
+            <li key={it.id} title={names[it.id] ?? it.id}>
+              <img src={itemUrl(it.id)} alt={names[it.id] ?? it.id} />
+              {it.count > 1 && <span>×{it.count}</span>}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="village-soon">아직 없습니다. 뽑기로 가구를 모아 보세요</p>
+      )}
+    </>
+  )
+}
+
+function GachaPrize({ result }: { result: GachaResult }) {
+  if (result.kind === 'item') {
+    return (
+      <p className="village-prize">
+        <img src={itemUrl(result.id)} alt="" />
+        {result.name}
+        {objectParticle(result.name)} 얻었습니다
+      </p>
+    )
+  }
+  const coin = result.kind === 'coins'
+  return (
+    <p className="village-prize">
+      <img src={coin ? COIN_URL : CRYSTAL_URL} alt="" />
+      {coin ? '코인' : '크리스탈'} {result.amount}개를 얻었습니다
+    </p>
   )
 }

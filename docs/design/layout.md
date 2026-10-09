@@ -25,7 +25,7 @@
 
 | 주소 | 메뉴 | 화면 | 상태 |
 |---|---|---|---|
-| `/` | 대시보드 | `VillagePage` (픽셀아트 마을, [plan/v3-village.md](../plan/v3-village.md)) | 진행 중 (1~3단계 완료: 바탕·밭·연구소) |
+| `/` | 대시보드 | `VillagePage` (픽셀아트 마을, [plan/v3-village.md](../plan/v3-village.md)) | 진행 중 (1~4단계 완료: 바탕·밭·연구소·상점) |
 | `/games` | 내 보드게임 목록 | `GamesPage` | 완료 (v1 표 화면) |
 | (없음) | 스토어 | 사이드바에서 펼침 (`StoreSidebar`) | 완료 |
 | `/club/dues` | 동아리 회비 관리 | `ClubDuesPage` | v1 완료 (현황표·회원) |

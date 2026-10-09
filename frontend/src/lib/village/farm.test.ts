@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { clockOffset, farmNow, formatLeft, growthStage } from './farm'
-import type { VillageState } from './state'
+import { objectParticle, type VillageState } from './state'
 
 const state = (last: string, serverTime: string, rate = 10): VillageState => ({
   version: 1,
@@ -13,6 +13,7 @@ const state = (last: string, serverTime: string, rate = 10): VillageState => ({
   player: null,
   farm: { rate_per_hour: rate, cap_hours: 12, pending: 0, full_at: '' },
   lab: null,
+  shop: { cost: 100, names: {} },
   server_time: serverTime,
 })
 
@@ -48,5 +49,13 @@ describe('formatLeft / growthStage', () => {
 
   it('grows one stage per quarter of the cap', () => {
     expect([0, 0.24, 0.25, 0.5, 0.99, 1].map(growthStage)).toEqual([1, 1, 2, 3, 4, 4])
+  })
+})
+
+describe('objectParticle', () => {
+  it('picks 을/를 by the last syllable', () => {
+    expect(objectParticle('서랍장')).toBe('을')
+    expect(objectParticle('나무 의자')).toBe('를')
+    expect(objectParticle('LV2')).toBe('을(를)')
   })
 })

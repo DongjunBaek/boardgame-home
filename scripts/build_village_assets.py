@@ -172,6 +172,39 @@ ICONS = {
 }
 
 
+# 뽑기 가구: Basic Furniture.png에서 잘라 낼 범위 (x0, y0, x1, y1). 범위 안에서 그림이 있는 곳만 남긴다.
+# 이름·확률은 서버(backend/app/village.py의 FURNITURE)에 있고, id가 같아야 한다 (테스트가 검사한다)
+FURNITURE = {
+    "painting-flowers": (0, 4, 17, 14),
+    "painting-field": (18, 4, 31, 14),
+    "painting-night": (34, 4, 48, 14),
+    "pot-sunflower": (50, 0, 63, 15),
+    "pot-sprout": (66, 0, 78, 14),
+    "pot-blue-flower": (82, 0, 94, 14),
+    "lamp-green": (50, 15, 63, 28),
+    "lamp-blue": (66, 15, 78, 28),
+    "lamp-pink": (82, 15, 94, 28),
+    "bed-green": (0, 25, 16, 49),
+    "bed-blue": (16, 25, 32, 49),
+    "bed-pink": (32, 25, 48, 49),
+    "dresser": (48, 31, 64, 48),
+    "table": (48, 48, 64, 64),
+    "chair": (66, 32, 78, 47),
+    "cabinet": (98, 32, 110, 47),
+    "side-table": (114, 35, 126, 47),
+    "stool": (66, 50, 78, 61),
+    "clock-cat": (80, 47, 95, 64),
+    "clock-round": (97, 49, 112, 64),
+    "clock-small": (115, 51, 126, 62),
+    "rug-small-green": (0, 81, 16, 96),
+    "rug-small-pink": (16, 81, 32, 96),
+    "rug-small-blue": (32, 81, 48, 96),
+    "rug-green": (51, 81, 77, 96),
+    "rug-pink": (83, 81, 109, 96),
+    "rug-blue": (115, 81, 141, 96),
+}
+
+
 def icon(colors: dict[str, str], rows: list[str]) -> Image.Image:
     im = Image.new("RGBA", (T, T))
     for y, row in enumerate(rows):
@@ -262,6 +295,20 @@ def main() -> None:
     icons.mkdir(exist_ok=True)
     for name, (colors, rows) in ICONS.items():
         icon(colors, rows).save(icons / f"{name}.png")
+    # 뽑기 가구: 하나씩 잘라서 items/<id>.png
+    items = OUT / "items"
+    items.mkdir(exist_ok=True)
+    sheet = src("Objects/Basic Furniture.png")
+    for item_id, box in FURNITURE.items():
+        part = sheet.crop(box)
+        part.crop(part.getbbox()).save(items / f"{item_id}.png")
+
+    # 뽑기 상자: Chest.png 첫 줄(48×48 칸)의 닫힌 것과 열린 것.
+    # 칸 안 그림이 작아서 두 장 모두 그림이 있는 곳(열린 뚜껑까지)만 같은 크기(18×21)로 자른다
+    chest = src("Objects/Chest.png")
+    box = (15, 11, 33, 32)
+    chest.crop(box).save(icons / "chest-closed.png")
+    chest.crop((4 * 48 + box[0], box[1], 4 * 48 + box[2], box[3])).save(icons / "chest-open.png")
     print(f"만들었습니다: {OUT.relative_to(ROOT)}")
 
 

@@ -1901,6 +1901,8 @@ label.checks {
   right: 16px;
   bottom: 16px;
   width: min(320px, calc(100% - 32px));
+  max-height: calc(100% - 72px);
+  overflow-y: auto;
   padding: 12px 14px 14px;
   font: 15px/1.5 Galmuri14, 'Pretendard Variable', sans-serif;
   letter-spacing: 0;
@@ -2061,6 +2063,75 @@ label.checks {
 
 .village-panel p.village-note.muted {
   color: var(--v-ink-soft);
+}
+
+/* 상점: 보물 상자와 뽑은 것 */
+.village-gacha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 68px;
+  margin: 4px 0 6px;
+}
+
+/* 상자 그림 18×21px을 3배로 */
+.village-gacha > img {
+  flex: none;
+  width: 54px;
+  height: 63px;
+  image-rendering: pixelated;
+}
+
+.village-panel p.village-prize {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 0;
+  animation: village-pop 0.15s ease-out;
+}
+
+.village-prize img {
+  height: 32px;
+  image-rendering: pixelated;
+}
+
+.village-sub {
+  margin: 14px 0 6px;
+  font: 700 12px/1.4 Galmuri11, 'Pretendard Variable', sans-serif;
+  color: var(--v-ink-soft);
+}
+
+.village-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.village-items li {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 44px;
+  background: var(--v-paper-deep);
+  border-radius: 2px;
+}
+
+.village-items img {
+  max-width: 36px;
+  max-height: 36px;
+  image-rendering: pixelated;
+  transform: scale(1.5);
+}
+
+.village-items span {
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  font: 12px/1.2 Galmuri11, 'Pretendard Variable', sans-serif;
 }
 
 .village-close {
